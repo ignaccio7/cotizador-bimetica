@@ -110,7 +110,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent className="px-1">
-                {/* Sección Comercial & Ventas (Vendedor) */}
+                {/* Sección Comercial & Ventas (Visible para Vendedor y Admin) */}
                 <SidebarGroup className="py-1">
                     <SidebarGroupLabel className="flex items-center gap-1.5 px-2 text-xs font-bold uppercase tracking-wider text-[#b8860b] dark:text-[#fbad03]">
                         <Receipt className="size-4 shrink-0 text-[#b8860b] dark:text-[#fbad03]" />
@@ -138,69 +138,53 @@ export function AppSidebar() {
                     </SidebarMenu>
                 </SidebarGroup>
 
-                <SidebarSeparator className="my-2 border-dashed opacity-60" />
+                {/* Sección Administración & Catálogo (ESTRICTAMENTE ADMIN) */}
+                {userRole === 'admin' && (
+                    <>
+                        <SidebarSeparator className="my-2 border-dashed opacity-60" />
 
-                {/* Sección Administración & Catálogo (Admin) */}
-                <SidebarGroup className="py-1">
-                    <SidebarGroupLabel className="flex items-center gap-1.5 px-2 text-xs font-bold uppercase tracking-wider text-tertiary-700 dark:text-tertiary-300">
-                        <Layers className="size-4 shrink-0 text-tertiary-600 dark:text-tertiary-400" />
-                        <span>ADMINISTRACIÓN & CATÁLOGO</span>
-                    </SidebarGroupLabel>
-                    <SidebarMenu className="mt-1 space-y-0.5">
-                        {adminNavItems.map((item) => {
-                            const active = isCurrentUrl(item.href);
-                            return (
-                                <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={active}
-                                        tooltip={{ children: item.title }}
-                                        className="h-9 font-medium text-foreground/80 hover:bg-tertiary/15 hover:text-foreground data-[active=true]:bg-tertiary/20 data-[active=true]:font-semibold data-[active=true]:text-tertiary-800 dark:data-[active=true]:text-tertiary-300"
-                                    >
-                                        <Link href={item.href} prefetch>
-                                            <item.icon className="size-4 shrink-0" />
-                                            <span>{item.title}</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            );
-                        })}
-                    </SidebarMenu>
-                </SidebarGroup>
+                        <SidebarGroup className="py-1">
+                            <SidebarGroupLabel className="flex items-center gap-1.5 px-2 text-xs font-bold uppercase tracking-wider text-tertiary-700 dark:text-tertiary-300">
+                                <Layers className="size-4 shrink-0 text-tertiary-600 dark:text-tertiary-400" />
+                                <span>ADMINISTRACIÓN & CATÁLOGO</span>
+                            </SidebarGroupLabel>
+                            <SidebarMenu className="mt-1 space-y-0.5">
+                                {adminNavItems.map((item) => {
+                                    const active = isCurrentUrl(item.href);
+                                    return (
+                                        <SidebarMenuItem key={item.title}>
+                                            <SidebarMenuButton
+                                                asChild
+                                                isActive={active}
+                                                tooltip={{ children: item.title }}
+                                                className="h-9 font-medium text-foreground/80 hover:bg-tertiary/15 hover:text-foreground data-[active=true]:bg-tertiary/20 data-[active=true]:font-semibold data-[active=true]:text-tertiary-800 dark:data-[active=true]:text-tertiary-300"
+                                            >
+                                                <Link href={item.href} prefetch>
+                                                    <item.icon className="size-4 shrink-0" />
+                                                    <span>{item.title}</span>
+                                                </Link>
+                                            </SidebarMenuButton>
+                                        </SidebarMenuItem>
+                                    );
+                                })}
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    </>
+                )}
             </SidebarContent>
 
             <SidebarFooter className="p-2 border-t border-sidebar-border/40">
-                {/* Switcher rápido de Roles para pruebas en vistas */}
-                <div className="mb-2 rounded-lg bg-muted/60 p-2 text-xs border border-border/50">
-                    <div className="flex items-center justify-between font-medium text-muted-foreground mb-1.5">
-                        <span>Vista activa:</span>
-                        <span className="font-semibold text-primary uppercase text-[10px] px-1.5 py-0.5 rounded bg-primary/10">
-                            {userRole === 'admin' ? 'Administrador' : 'Vendedor'}
-                        </span>
+                {/* Indicador de Motor AEC */}
+                <div className="mb-2 flex items-center justify-between rounded-lg border border-border/40 bg-muted/40 px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                        <span className="size-2 rounded-full bg-[#fbad03] shadow-[0_0_8px_#fbad03]" />
+                        <span className="tracking-wider font-semibold">MOTOR CÁLCULO AEC V2.4</span>
                     </div>
-                    <div className="flex gap-1.5">
-                        <a
-                            href="/dev-login/seller"
-                            className={`flex-1 text-center py-1 rounded text-[11px] font-medium transition-colors ${
-                                userRole === 'seller'
-                                    ? 'bg-[#fbad03] text-primary-950 font-bold shadow-xs'
-                                    : 'bg-background hover:bg-muted text-muted-foreground'
-                            }`}
-                        >
-                            Vendedor
-                        </a>
-                        <a
-                            href="/dev-login/admin"
-                            className={`flex-1 text-center py-1 rounded text-[11px] font-medium transition-colors ${
-                                userRole === 'admin'
-                                    ? 'bg-primary text-primary-foreground font-bold shadow-xs'
-                                    : 'bg-background hover:bg-muted text-muted-foreground'
-                            }`}
-                        >
-                            Admin
-                        </a>
-                    </div>
+                    <span className="font-bold text-foreground text-[9px] uppercase tracking-wider px-1 rounded bg-secondary/15 text-secondary-800 dark:text-secondary-300">
+                        ACTIVO
+                    </span>
                 </div>
+
 
                 <NavUser />
             </SidebarFooter>

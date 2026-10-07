@@ -1,52 +1,47 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
-    ArrowLeft,
-    Building2,
-    Calculator,
+    ArrowRight,
+    Bell,
+    Building,
     Check,
-    CheckCircle2,
-    Layers,
-    MapPin,
+    Clock,
+    DraftingCompass,
+    HelpCircle,
+    Lock,
+    MessageCircle,
+    Phone,
     Plus,
+    Printer,
     Save,
+    SlidersHorizontal,
     Trash2,
-    User,
-    UserPlus,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import initialFormsRoute from '@/routes/initial-forms';
 import quotesRoute from '@/routes/quotes';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, User } from '@/types';
 
-interface Client {
+interface ClientItem {
     id: number;
     code: string;
     name: string;
     ci: string;
     phone: string;
     address: string;
+    occupation: string;
 }
 
-interface ServiceCatalogItem {
+interface ServiceItem {
     id: number;
     name: string;
     description: string;
-    uses_floors: boolean;
-    variables: Array<{
-        name: string;
-        label: string;
-        type: string;
-        default: number;
-    }>;
-    base_price: number;
+    rate_bs: number;
+    scope: string[];
+    note: string;
 }
 
-interface CityOption {
+interface CityItem {
     id: number;
     name: string;
     viatico: number;
@@ -54,9 +49,10 @@ interface CityOption {
 
 interface FloorRow {
     id: string;
-    floor_name: string;
+    level: string;
     description: string;
     area_m2: number;
+    isActive: boolean;
 }
 
 export default function QuoteCreate({
@@ -64,520 +60,960 @@ export default function QuoteCreate({
     servicesCatalog = [],
     cities = [],
 }: {
-    clients: Client[];
-    servicesCatalog: ServiceCatalogItem[];
-    cities: CityOption[];
+    clients: ClientItem[];
+    servicesCatalog: ServiceItem[];
+    cities: CityItem[];
 }) {
-    // 1. Cliente & Proyecto
-    const [selectedClientId, setSelectedClientId] = useState<number>(clients[0]?.id || 1);
-    const [projectName, setProjectName] = useState('Residencia Moderna Achumani');
-    const [selectedCityId, setSelectedCityId] = useState<number>(cities[0]?.id || 1);
+    const { auth } = usePage<{ auth?: { user?: User } }>().props;
+    const userRole = auth?.user?.role || 'seller';
+    const userName = auth?.user?.name || 'Ing. Guadalupe / Janeth';
 
-    // 2. Grupos de Pisos (Reutilizables según CONTEXT.md)
-    const [floorGroupName, setFloorGroupName] = useState('Tabla General de Pisos');
+    // 1. Cliente & Expediente (Vendedor ingresa directamente)
+    const [clientData, setClientData] = useState<ClientItem>({
+        id: 1,
+        code: '084/2026',
+        name: 'JANETH / EUNICE MIRANDA NAVIA',
+        ci: '76734409 LP',
+        phone: '76734409',
+        address: 'BAJO SAN ANTONIO',
+        occupation: 'COMERCIANTE',
+    });
+
+    const quoteCode = 'COT-2026-084';
+
+    // 2. Parámetros de Diseño
+    const [terrainArea, setTerrainArea] = useState<number>(350);
+    const [zoneType, setZoneType] = useState<string>('URBANA CENTRAL (INCLUIDO)');
+    const [projectType, setProjectType] = useState<string>('VIVIENDA UNIFAMILIAR / 1');
+
+    // 3. Tabla de Plantas de la Edificación (Arquitectura)
     const [floors, setFloors] = useState<FloorRow[]>([
-        { id: '1', floor_name: 'Subsuelo', description: 'Área de garaje y depósito', area_m2: 65 },
-        { id: '2', floor_name: 'Planta Baja', description: 'Living, comedor, cocina y galería', area_m2: 120 },
-        { id: '3', floor_name: 'Planta Alta 1', description: '3 Dormitorios en suite y estar', area_m2: 110 },
-        { id: '4', floor_name: 'Terraza / Cubierta', description: 'Área de parrillero y lavandería', area_m2: 45 },
+        { id: '4', level: '04° PLANTA', description: '-', area_m2: 0, isActive: false },
+        { id: '3', level: '03° PLANTA', description: '-', area_m2: 0, isActive: false },
+        { id: '2', level: '02° PLANTA', description: '-', area_m2: 0, isActive: false },
+        { id: '1', level: '01° PLANTA', description: 'DEPARTAMENTO DE 3 HABITACIONES', area_m2: 200, isActive: true },
+        { id: '0', level: 'PLANTA BAJA', description: 'Estacionamiento, acceso peatonal y jardín', area_m2: 100, isActive: true },
     ]);
 
-    // 3. Servicios seleccionados
-    const [selectedServices, setSelectedServices] = useState<Record<number, boolean>>({
-        1: true, // Planos 2D
-        2: true, // Diseño Arquitectónico
-        3: false,
-        4: false,
-        5: false,
-    });
-
-    const [serviceInputs, setServiceInputs] = useState<Record<number, Record<string, number>>>({
-        1: { m2: 340, complejidad: 1 },
-        2: { m2: 340, renders_extra: 2 },
-        3: { m2: 340, pisos_altura: 2 },
-        4: { ambientes: 4 },
-        5: { visado_colegio: 1 },
-    });
-
-    // Calcular área total de los pisos
     const totalFloorsM2 = useMemo(() => {
-        return floors.reduce((acc, row) => acc + (Number(row.area_m2) || 0), 0);
+        return floors.reduce(
+            (sum, f) => (f.isActive ? sum + (Number(f.area_m2) || 0) : sum),
+            0
+        );
     }, [floors]);
 
-    // Manejar cambio en pisos
-    const handleFloorChange = (id: string, field: keyof FloorRow, value: string | number) => {
-        setFloors((prev) =>
-            prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
-        );
-    };
-
     const addFloorRow = () => {
-        const nextId = String(Date.now());
-        setFloors((prev) => [
-            ...prev,
-            { id: nextId, floor_name: `Nuevo Nivel`, description: '', area_m2: 50 },
-        ]);
+        const nextNum = floors.length;
+        const newFloor: FloorRow = {
+            id: String(Date.now()),
+            level: `0${nextNum}° PLANTA`,
+            description: 'Ambientes proyectados',
+            area_m2: 50,
+            isActive: true,
+        };
+        setFloors((prev) => [newFloor, ...prev]);
     };
 
     const removeFloorRow = (id: string) => {
-        setFloors((prev) => prev.filter((row) => row.id !== id));
+        setFloors((prev) => prev.filter((f) => f.id !== id));
     };
 
-    // Toggle de servicio
-    const toggleService = (serviceId: number) => {
-        setSelectedServices((prev) => ({
+    const updateFloorRow = (
+        id: string,
+        field: keyof FloorRow,
+        value: string | number | boolean
+    ) => {
+        setFloors((prev) =>
+            prev.map((f) => {
+                if (f.id === id) {
+                    const updated = { ...f, [field]: value };
+                    if (field === 'area_m2') {
+                        updated.isActive = Number(value) > 0;
+                    }
+                    return updated;
+                }
+                return f;
+            })
+        );
+    };
+
+    // 4. Servicios Seleccionados y Variables Dinámicas Llenables por Servicio
+    // Por defecto marcados: Diseño Arquitectónico (2) y Cálculo Estructural (3)
+    const [activeServiceIds, setActiveServiceIds] = useState<number[]>([2, 3]);
+
+    // M2 Dinámicos por Servicio: El vendedor llena independientemente los m² que se calculan en cada servicio
+    const [serviceM2Values, setServiceM2Values] = useState<Record<number, number>>({
+        1: 300, // Planos 2D
+        2: 300, // Diseño Arquitectónico
+        3: 300, // Cálculo Estructural
+        4: 150, // Diseño de Interiores
+        5: 350, // Estudio de Suelos
+        6: 300, // Trámites
+    });
+
+    const updateServiceM2 = (serviceId: number, value: number) => {
+        setServiceM2Values((prev) => ({
             ...prev,
-            [serviceId]: !prev[serviceId],
+            [serviceId]: value,
         }));
     };
 
-    // Viático de la ciudad seleccionada
-    const currentCity = cities.find((c) => c.id === selectedCityId);
-    const cityViatico = currentCity?.viatico || 0;
+    // Variables dinámicas secundarias que el vendedor puede llenar por servicio
+    const [dynamicVariables, setDynamicVariables] = useState<Record<number, Record<string, number>>>({
+        1: { complejidad: 1 },
+        2: { renders_extra: 0 },
+        3: { pisos_altura: 2 },
+        4: { ambientes: 4 },
+        5: { pozos: 3 },
+        6: { visado_colegio: 1 },
+    });
 
-    // Cálculo dinámico de subtotales por servicio evaluando variables
-    const calculatedServices = useMemo(() => {
-        return servicesCatalog.map((svc) => {
-            const isChecked = !!selectedServices[svc.id];
-            const inputs = serviceInputs[svc.id] || {};
-            let subtotal = 0;
+    const updateDynamicVariable = (serviceId: number, varName: string, value: number) => {
+        setDynamicVariables((prev) => ({
+            ...prev,
+            [serviceId]: {
+                ...(prev[serviceId] || {}),
+                [varName]: value,
+            },
+        }));
+    };
 
-            if (isChecked) {
-                // Cálculo de ejemplo respetando las reglas de CONTEXT.md
-                if (svc.id === 1) {
-                    // Planos 2D: m2 * 24 * complejidad (mínimo 1200)
-                    const m2 = totalFloorsM2 || inputs.m2 || 200;
-                    const comp = inputs.complejidad || 1;
-                    subtotal = m2 < 50 ? 1200 : Math.round(m2 * 24 * comp);
-                } else if (svc.id === 2) {
-                    // Diseño 3D: m2 < 30 ? 1600 : m2 * 56 + renders
-                    const m2 = totalFloorsM2 || inputs.m2 || 200;
-                    const renders = inputs.renders_extra || 0;
-                    subtotal = m2 < 30 ? 1600 : Math.round(m2 * 56 + renders * 150);
-                } else if (svc.id === 3) {
-                    // Estructural
-                    const m2 = totalFloorsM2 || inputs.m2 || 200;
-                    const niveles = inputs.pisos_altura || 2;
-                    subtotal = m2 < 100 ? 1400 : Math.round(m2 * 18 * (1 + (niveles - 1) * 0.15));
-                } else if (svc.id === 4) {
-                    // Interiores
-                    const amb = inputs.ambientes || 4;
-                    subtotal = amb * 300;
-                } else if (svc.id === 5) {
-                    // Trámites
-                    subtotal = 500;
-                }
+    // Evaluación matemática de Fórmulas: toma variables dinámicas (m2 propio del servicio, extras) y estáticas (tarifas fijadas por admin)
+    const evaluateServiceFormula = (service: ServiceItem, m2: number) => {
+        const dynVars = dynamicVariables[service.id] || {};
+        const rendersExtra = Number(dynVars.renders_extra) || 0;
+        const complejidad = Number(dynVars.complejidad) || 1;
+
+        let subtotal = 0;
+        let rateBs = service.rate_bs;
+
+        switch (service.id) {
+            case 1: // Planos 2D: base 18 Bs * complejidad
+                subtotal = m2 * 18 * complejidad;
+                rateBs = 18 * complejidad;
+                break;
+            case 2: // Diseño Arquitectónico: base 24 Bs + renders extra * 150 Bs
+                subtotal = m2 * 24 + rendersExtra * 150;
+                rateBs = m2 > 0 ? subtotal / m2 : 24;
+                break;
+            case 3: // Cálculo Estructural: base 23.50 Bs / m2
+                subtotal = m2 * 23.5;
+                rateBs = 23.5;
+                break;
+            case 4: // Diseño de Interiores: base 20 Bs / m2
+                subtotal = m2 * 20;
+                rateBs = 20;
+                break;
+            case 5: // Estudio de Suelos: base 15 Bs / m2
+                subtotal = m2 * 15;
+                rateBs = 15;
+                break;
+            case 6: // Trámites: base 10 Bs / m2
+                subtotal = m2 * 10;
+                rateBs = 10;
+                break;
+            default:
+                subtotal = m2 * service.rate_bs;
+                rateBs = service.rate_bs;
+                break;
+        }
+
+        return {
+            m2,
+            rateBs,
+            subtotal,
+        };
+    };
+
+    const addService = (id: number) => {
+        if (!activeServiceIds.includes(id)) {
+            setActiveServiceIds((prev) => [...prev, id]);
+            if (serviceM2Values[id] === undefined) {
+                setServiceM2Values((prev) => ({
+                    ...prev,
+                    [id]: totalFloorsM2 > 0 ? totalFloorsM2 : 100,
+                }));
             }
+        }
+    };
 
-            return {
-                ...svc,
-                isChecked,
-                subtotal,
-            };
-        });
-    }, [servicesCatalog, selectedServices, serviceInputs, totalFloorsM2]);
+    const removeService = (id: number) => {
+        setActiveServiceIds((prev) => prev.filter((sId) => sId !== id));
+    };
 
-    const servicesSubtotal = useMemo(() => {
-        return calculatedServices.reduce((sum, s) => sum + (s.isChecked ? s.subtotal : 0), 0);
-    }, [calculatedServices]);
+    // Servicios activos calculados
+    const activeServices = useMemo(() => {
+        return servicesCatalog.filter((s) => activeServiceIds.includes(s.id));
+    }, [servicesCatalog, activeServiceIds]);
 
-    const totalQuoteAmount = servicesSubtotal + cityViatico;
-    const totalQuoteBob = Math.round(totalQuoteAmount * 6.96);
+    // Servicios disponibles aún por agregar al cotizador
+    const availableServicesToAdd = useMemo(() => {
+        return servicesCatalog.filter((s) => !activeServiceIds.includes(s.id));
+    }, [servicesCatalog, activeServiceIds]);
 
-    const selectedClient = clients.find((c) => c.id === selectedClientId);
+    // Inversión Total calculada sumando los servicios activos evaluados con sus fórmulas
+    const totalQuoteBs = useMemo(() => {
+        return activeServices.reduce((sum, service) => {
+            const m2 = serviceM2Values[service.id] ?? 0;
+            const { subtotal } = evaluateServiceFormula(service, m2);
+            return sum + subtotal;
+        }, 0);
+    }, [activeServices, serviceM2Values, dynamicVariables]);
+
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const [savedNotification, setSavedNotification] = useState(false);
+    const handleSave = () => {
+        setSavedNotification(true);
+        setTimeout(() => setSavedNotification(false), 3000);
+    };
+
+    const handleWhatsApp = () => {
+        const text = encodeURIComponent(
+            `Hola ${clientData.name}, le comparto la cotización ${quoteCode} de BIMETICA para su proyecto en ${clientData.address}. Total M2 edificación: ${totalFloorsM2} m². Inversión estimada: Bs. ${totalQuoteBs.toLocaleString('es-BO', { minimumFractionDigits: 2 })}. Saludos cordiales.`
+        );
+        window.open(`https://api.whatsapp.com/send?phone=591${clientData.phone}&text=${text}`, '_blank');
+    };
 
     return (
-        <div className="flex flex-1 flex-col gap-6 p-6">
-            <Head title="Nueva Cotización - Bimetica" />
+        <div className="min-h-screen bg-[#f4f7f9] text-slate-800 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans">
+            <Head title="Nueva Cotización - COT-2026-084 | BIMETICA" />
 
-            {/* Cabecera con retorno */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                    <Button asChild variant="outline" size="icon" className="size-9">
-                        <Link href={quotesRoute.index()}>
-                            <ArrowLeft className="size-4" />
-                        </Link>
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                            Nueva Cotización
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Configuración de grupos de pisos, catálogo de servicios y fórmulas en tiempo real.
-                        </p>
+            {/* TOP BAR / HEADER DE NAVEGACIÓN Y ESTADO */}
+            <header className="border-b border-slate-200 bg-white px-4 py-2.5 dark:border-slate-800 dark:bg-slate-900 print:hidden shadow-xs">
+                <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+                    {/* Tags a la izquierda */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50/70 px-2.5 py-1 text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                                MEMBRETE
+                            </span>
+                            <span className="font-extrabold text-[11px]">OPERATIVO</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                            <Building className="size-3 text-slate-500" />
+                            <span className="text-[10px] font-bold uppercase text-slate-500">ESTUDIO</span>
+                            <span className="font-extrabold text-[11px]">CENTRAL</span>
+                        </div>
+
+                        <div className="hidden sm:flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            <Clock className="size-3 text-slate-400" />
+                            <span>Tasa UF/M2 Actualizada</span>
+                        </div>
+                    </div>
+
+                    {/* Usuario y Rol a la derecha */}
+                    <div className="flex items-center gap-3 text-xs">
+                        <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-slate-500 text-[11px]">ROL :</span>
+                            <span className="rounded-md bg-[#00253d] px-2.5 py-0.5 font-bold uppercase tracking-wider text-white text-[10px] shadow-xs">
+                                {userRole === 'admin' ? 'Administrador' : 'Vendedor'}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="relative text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 p-1"
+                            title="Notificaciones"
+                        >
+                            <Bell className="size-4" />
+                            <span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-[#fbad03]" />
+                        </button>
+
+                        <button
+                            type="button"
+                            className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 p-1"
+                            title="Ayuda del sistema"
+                        >
+                            <HelpCircle className="size-4" />
+                        </button>
+
+                        <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
+                            <span className="font-semibold text-slate-700 dark:text-slate-200 text-xs hidden md:inline">
+                                {userName}
+                            </span>
+                            <div className="flex size-7 items-center justify-center rounded-full bg-[#003e65] text-white font-bold text-xs shadow-xs">
+                                {userName.charAt(0)}
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </header>
 
-                <div className="flex items-center gap-3">
-                    <Button asChild variant="outline" className="text-sm">
-                        <Link href={quotesRoute.index()}>Cancelar</Link>
-                    </Button>
-                    <Button asChild className="bg-primary text-primary-foreground font-semibold shadow-sm">
-                        <Link href={initialFormsRoute.index()}>
-                            <Save className="mr-2 size-4" />
-                            Guardar y Formalizar
-                        </Link>
-                    </Button>
+            {/* SUB-HEADER / ACTION BAR */}
+            <div className="border-b border-slate-200 bg-white/90 backdrop-blur-xs px-4 py-3 dark:border-slate-800 dark:bg-slate-900/90 print:hidden shadow-xs">
+                <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+                    {/* Migas y Expediente */}
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+                        <span className="font-semibold text-slate-500 uppercase tracking-wider text-[11px]">
+                            COTIZACIONES &gt; <strong className="text-slate-800 dark:text-slate-100">NUEVA COTIZACIÓN</strong>
+                        </span>
+
+                        <span className="rounded-md border border-slate-300 bg-slate-100 px-2 py-0.5 font-mono font-bold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                            {quoteCode}
+                        </span>
+
+                        <span className="flex items-center gap-1.5 rounded-md border border-amber-300/80 bg-amber-50 px-2 py-0.5 font-bold text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300 text-[11px]">
+                            <span className="size-2 rounded-full bg-[#fbad03] shadow-[0_0_6px_#fbad03]" />
+                            ESTADO: CALCULADA
+                        </span>
+                    </div>
+
+                    {/* Acciones principales */}
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handlePrint}
+                            className="h-8 gap-1.5 text-xs font-semibold border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                        >
+                            <Printer className="size-3.5" />
+                            Imprimir Cotización (PDF)
+                        </Button>
+
+                        <Button
+                            asChild
+                            className="h-8 gap-1.5 bg-[#00253d] hover:bg-[#003e65] text-white text-xs font-bold shadow-xs"
+                        >
+                            <Link href={initialFormsRoute.index()}>
+                                Avanzar a Formulario Inicial
+                                <ArrowRight className="size-3.5" />
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
-                {/* Columna Izquierda & Central (Formulario de Cotización) */}
-                <div className="space-y-6 lg:col-span-2">
-                    {/* 1. Datos del Cliente & Proyecto */}
-                    <Card className="shadow-xs border">
-                        <CardHeader className="pb-3 border-b bg-muted/20">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-                                    <User className="size-4 text-primary" />
-                                    1. Cliente y Datos del Proyecto
-                                </CardTitle>
-                                <Badge variant="outline" className="font-mono text-xs font-semibold text-primary">
-                                    {selectedClient ? `Cód: ${selectedClient.code}` : '015/2026'}
-                                </Badge>
-                            </div>
-                            <CardDescription>
-                                Seleccione el cliente registrado o asigne datos básicos del encargo.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4 grid gap-4 sm:grid-cols-2">
-                            <div className="sm:col-span-2">
-                                <Label htmlFor="client-select" className="text-xs font-semibold uppercase text-muted-foreground">
-                                    Cliente Registrado
-                                </Label>
-                                <select
-                                    id="client-select"
-                                    value={selectedClientId}
-                                    onChange={(e) => setSelectedClientId(Number(e.target.value))}
-                                    className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                >
-                                    {clients.map((c) => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.name} — Cód: {c.code} ({c.ci})
-                                        </option>
-                                    ))}
-                                </select>
-                                {selectedClient && (
-                                    <div className="mt-2 text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-md flex flex-wrap gap-x-4 gap-y-1">
-                                        <span><strong>Tel:</strong> {selectedClient.phone}</span>
-                                        <span><strong>CI:</strong> {selectedClient.ci}</span>
-                                        <span><strong>Dirección:</strong> {selectedClient.address}</span>
+            {/* CONTENIDO PRINCIPAL: 2 COLUMNAS (HOJA DE COTIZACIÓN + PANEL DERECHO) */}
+            <main className="mx-auto max-w-7xl w-full flex-1 p-4 md:p-6 lg:p-8">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    {/* COLUMNA IZQUIERDA: HOJA DE COTIZACIÓN ARQUITECTÓNICA (8 COLUMNAS) */}
+                    <div className="lg:col-span-8 bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-200/90 dark:border-slate-800 p-6 sm:p-8 space-y-6 print:p-0 print:border-none print:shadow-none">
+                        {/* Cabecera de la Hoja */}
+                        <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
+                            {/* Logo Bimetica */}
+                            <div className="flex items-center gap-3">
+                                <div className="flex size-11 items-center justify-center rounded-lg bg-[#00253d] text-[#fbad03] shadow-xs">
+                                    <DraftingCompass className="size-6" />
+                                </div>
+                                <div>
+                                    <div className="text-xl font-black tracking-tight text-[#00253d] dark:text-white flex items-center gap-0.5">
+                                        Bimetica<span className="text-[#fbad03] text-2xl leading-none">.</span>
                                     </div>
-                                )}
+                                    <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                        Diseño y Construcción
+                                    </div>
+                                </div>
                             </div>
 
-                            <div>
-                                <Label htmlFor="project-name" className="text-xs font-semibold uppercase text-muted-foreground">
-                                    Nombre del Proyecto
-                                </Label>
-                                <Input
-                                    id="project-name"
-                                    value={projectName}
-                                    onChange={(e) => setProjectName(e.target.value)}
-                                    placeholder="Ej: Residencia Unifamiliar Calacoto"
-                                    className="mt-1.5"
-                                />
-                            </div>
-
-                            <div>
-                                <Label htmlFor="city-select" className="text-xs font-semibold uppercase text-muted-foreground">
-                                    Ciudad (Viático automático)
-                                </Label>
-                                <select
-                                    id="city-select"
-                                    value={selectedCityId}
-                                    onChange={(e) => setSelectedCityId(Number(e.target.value))}
-                                    className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                >
-                                    {cities.map((city) => (
-                                        <option key={city.id} value={city.id}>
-                                            {city.name} {city.viatico > 0 ? `(+$${city.viatico} USD viático)` : '(Sin viático)'}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* 2. Grupo de Pisos Reutilizable (quote_floor_groups) */}
-                    <Card className="shadow-xs border">
-                        <CardHeader className="pb-3 border-b bg-muted/20 flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-                                    <Layers className="size-4 text-[#fbad03]" />
-                                    2. Tabla de Pisos y Superficies Reutilizable
-                                </CardTitle>
-                                <CardDescription className="mt-1">
-                                    Define la lista de plantas y metros cuadrados que vincularás a los servicios.
-                                </CardDescription>
-                            </div>
+                            {/* Expediente y Vigencia */}
                             <div className="text-right">
-                                <span className="text-xs font-semibold text-muted-foreground block">
-                                    Superficie Total
-                                </span>
-                                <span className="text-lg font-black font-mono text-[#003e65] dark:text-[#fbad03]">
-                                    {totalFloorsM2} m²
-                                </span>
+                                <div className="text-xs font-black uppercase tracking-wider text-[#b8860b] dark:text-[#fbad03]">
+                                    EXPEDIENTE Nº {quoteCode}
+                                </div>
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                                    La Paz, Bolivia · Vigencia 7 días
+                                </div>
                             </div>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <div className="mb-3">
-                                <Label className="text-xs font-semibold text-muted-foreground">
-                                    Nombre del Grupo de Pisos
-                                </Label>
-                                <Input
-                                    value={floorGroupName}
-                                    onChange={(e) => setFloorGroupName(e.target.value)}
-                                    className="mt-1 max-w-sm h-8 text-xs font-medium"
+                        </div>
+
+                        {/* Título Central */}
+                        <div className="text-center py-1">
+                            <h1 className="text-2xl sm:text-3xl font-black tracking-widest text-[#00253d] dark:text-white">
+                                COTIZACIÓN
+                            </h1>
+                        </div>
+
+                        {/* Ficha del Cliente (2x2 Grid de Cajas Totalmente Editables para el Vendedor) */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                            {/* PROPIETARIO/S */}
+                            <div className="rounded-lg bg-slate-50/80 border border-slate-200/70 p-2.5 dark:bg-slate-800/50 dark:border-slate-700/60 focus-within:border-primary/50 focus-within:bg-white dark:focus-within:bg-slate-800 transition-colors">
+                                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
+                                    PROPIETARIO/S:
+                                </span>
+                                <input
+                                    type="text"
+                                    value={clientData.name}
+                                    onChange={(e) =>
+                                        setClientData((prev) => ({ ...prev, name: e.target.value }))
+                                    }
+                                    placeholder="Nombre del propietario o cliente"
+                                    className="mt-0.5 w-full bg-transparent font-bold text-slate-900 dark:text-slate-100 text-xs border-none p-0 focus:outline-none focus:ring-0"
                                 />
                             </div>
 
-                            <div className="rounded-lg border overflow-hidden">
-                                <table className="w-full text-left text-xs">
-                                    <thead className="bg-muted/60 font-semibold uppercase text-muted-foreground border-b">
-                                        <tr>
-                                            <th className="px-3 py-2">Nivel / Planta</th>
-                                            <th className="px-3 py-2">Descripción Funcional</th>
-                                            <th className="px-3 py-2 w-28 text-right">Área (m²)</th>
-                                            <th className="px-2 py-2 w-10 text-center"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border">
-                                        {floors.map((row) => (
-                                            <tr key={row.id} className="hover:bg-muted/20">
-                                                <td className="p-2">
-                                                    <Input
-                                                        value={row.floor_name}
-                                                        onChange={(e) =>
-                                                            handleFloorChange(row.id, 'floor_name', e.target.value)
-                                                        }
-                                                        className="h-7 text-xs font-semibold"
-                                                    />
-                                                </td>
-                                                <td className="p-2">
-                                                    <Input
-                                                        value={row.description}
-                                                        onChange={(e) =>
-                                                            handleFloorChange(row.id, 'description', e.target.value)
-                                                        }
-                                                        placeholder="Detalle de áreas..."
-                                                        className="h-7 text-xs"
-                                                    />
-                                                </td>
-                                                <td className="p-2 text-right">
-                                                    <Input
-                                                        type="number"
-                                                        value={row.area_m2}
-                                                        onChange={(e) =>
-                                                            handleFloorChange(row.id, 'area_m2', Number(e.target.value))
-                                                        }
-                                                        className="h-7 text-xs font-mono text-right font-bold"
-                                                    />
-                                                </td>
-                                                <td className="p-2 text-center">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeFloorRow(row.id)}
-                                                        className="text-muted-foreground hover:text-destructive p-1"
-                                                    >
-                                                        <Trash2 className="size-3.5" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            {/* Nº CELULAR */}
+                            <div className="rounded-lg bg-slate-50/80 border border-slate-200/70 p-2.5 dark:bg-slate-800/50 dark:border-slate-700/60 focus-within:border-primary/50 focus-within:bg-white dark:focus-within:bg-slate-800 transition-colors">
+                                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
+                                    Nº CELULAR:
+                                </span>
+                                <input
+                                    type="text"
+                                    value={clientData.phone}
+                                    onChange={(e) =>
+                                        setClientData((prev) => ({ ...prev, phone: e.target.value }))
+                                    }
+                                    placeholder="Número de celular / teléfono"
+                                    className="mt-0.5 w-full font-bold text-slate-900 dark:text-slate-100 text-xs bg-transparent border-none p-0 focus:outline-none focus:ring-0"
+                                />
                             </div>
 
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={addFloorRow}
-                                className="mt-3 text-xs font-medium"
-                            >
-                                <Plus className="mr-1.5 size-3.5" />
-                                Añadir Planta / Nivel
-                            </Button>
-                        </CardContent>
-                    </Card>
+                            {/* DIRECCIÓN */}
+                            <div className="rounded-lg bg-slate-50/80 border border-slate-200/70 p-2.5 dark:bg-slate-800/50 dark:border-slate-700/60 focus-within:border-primary/50 focus-within:bg-white dark:focus-within:bg-slate-800 transition-colors">
+                                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
+                                    DIRECCIÓN:
+                                </span>
+                                <input
+                                    type="text"
+                                    value={clientData.address}
+                                    onChange={(e) =>
+                                        setClientData((prev) => ({ ...prev, address: e.target.value }))
+                                    }
+                                    placeholder="Dirección del inmueble o terreno"
+                                    className="mt-0.5 w-full font-bold text-slate-900 dark:text-slate-100 text-xs bg-transparent border-none p-0 focus:outline-none focus:ring-0"
+                                />
+                            </div>
 
-                    {/* 3. Catálogo de Servicios & Variables Dinámicas */}
-                    <Card className="shadow-xs border">
-                        <CardHeader className="pb-3 border-b bg-muted/20">
-                            <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-                                <Calculator className="size-4 text-tertiary" />
-                                3. Servicios Arquitectónicos y Variables
-                            </CardTitle>
-                            <CardDescription>
-                                Active los servicios que integran la cotización. Cada uno evaluará su fórmula automáticamente.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4 space-y-4">
-                            {calculatedServices.map((svc) => (
-                                <div
-                                    key={svc.id}
-                                    className={`rounded-xl border p-4 transition-all ${
-                                        svc.isChecked
-                                            ? 'border-primary/40 bg-primary/5 shadow-xs'
-                                            : 'border-border bg-card opacity-80'
-                                    }`}
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex items-start gap-3">
+                            {/* OCUPACIÓN */}
+                            <div className="rounded-lg bg-slate-50/80 border border-slate-200/70 p-2.5 dark:bg-slate-800/50 dark:border-slate-700/60 focus-within:border-primary/50 focus-within:bg-white dark:focus-within:bg-slate-800 transition-colors">
+                                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
+                                    OCUPACIÓN:
+                                </span>
+                                <input
+                                    type="text"
+                                    value={clientData.occupation}
+                                    onChange={(e) =>
+                                        setClientData((prev) => ({ ...prev, occupation: e.target.value }))
+                                    }
+                                    placeholder="Ocupación / Profesión"
+                                    className="mt-0.5 w-full font-bold text-slate-900 dark:text-slate-100 text-xs bg-transparent border-none p-0 focus:outline-none focus:ring-0"
+                                />
+                            </div>
+                        </div>
+
+                        {/* PARÁMETROS DE DISEÑO */}
+                        <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-2xs">
+                            <div className="bg-[#071526] text-white px-3 py-2 flex items-center justify-between text-xs font-bold uppercase tracking-wider">
+                                <span>PARÁMETROS DE DISEÑO</span>
+                                <SlidersHorizontal className="size-3.5 text-slate-300" />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800 p-3 text-xs">
+                                <div className="sm:pr-3 py-1">
+                                    <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                        SUPERFICIE DE TERRENO
+                                    </span>
+                                    <div className="mt-1 flex items-baseline gap-1">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={terrainArea || ''}
+                                            onChange={(e) => setTerrainArea(Number(e.target.value))}
+                                            className="w-24 text-base font-black text-slate-900 dark:text-slate-100 bg-transparent border-b border-dashed border-slate-300 focus:border-primary focus:outline-none p-0"
+                                        />
+                                        <span className="text-xs font-bold text-slate-500">M2</span>
+                                    </div>
+                                </div>
+
+                                <div className="sm:px-3 py-1">
+                                    <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                        VIÁTICOS / ZONA
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value={zoneType}
+                                        onChange={(e) => setZoneType(e.target.value)}
+                                        className="mt-1 w-full font-bold text-slate-900 dark:text-slate-100 bg-transparent border-b border-dashed border-slate-300 focus:border-primary focus:outline-none text-xs p-0"
+                                    />
+                                </div>
+
+                                <div className="sm:pl-3 py-1">
+                                    <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                        TIPO DE PROYECTO
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value={projectType}
+                                        onChange={(e) => setProjectType(e.target.value)}
+                                        className="mt-1 w-full font-bold text-slate-900 dark:text-slate-100 bg-transparent border-b border-dashed border-slate-300 focus:border-primary focus:outline-none text-xs p-0"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* SECCIÓN DE PLANTAS DE LA EDIFICACIÓN (M2 de Plantas / Niveles Arquitectónicos) */}
+                        <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-2xs">
+                            {/* Cabecera Amarilla Arquitectónica */}
+                            <div className="bg-[#fbad03] text-slate-950 font-black px-4 py-2 flex items-center justify-between text-xs uppercase tracking-wider">
+                                <div className="flex items-center gap-3">
+                                    <span>PLANTAS</span>
+                                    <button
+                                        type="button"
+                                        onClick={addFloorRow}
+                                        className="print:hidden text-[10px] bg-slate-950 text-white hover:bg-slate-800 px-2 py-0.5 rounded font-bold flex items-center gap-1 shadow-xs transition-colors"
+                                        title="Agregar nuevo nivel o planta arquitectónica"
+                                    >
+                                        <Plus className="size-3" />
+                                        Agregar Planta
+                                    </button>
+                                </div>
+                                <span>M2</span>
+                            </div>
+
+                            {/* Filas de la Tabla */}
+                            <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs bg-white dark:bg-slate-900">
+                                {floors.map((row) => (
+                                    <div
+                                        key={row.id}
+                                        className={`flex items-center justify-between gap-3 px-4 py-2 transition-colors ${
+                                            row.isActive
+                                                ? 'bg-white dark:bg-slate-900'
+                                                : 'bg-slate-50/60 dark:bg-slate-900/40 text-slate-400'
+                                        }`}
+                                    >
+                                        <div className="flex flex-1 items-center gap-3">
+                                            {/* Nivel editable */}
                                             <input
-                                                type="checkbox"
-                                                id={`service-${svc.id}`}
-                                                checked={svc.isChecked}
-                                                onChange={() => toggleService(svc.id)}
-                                                className="mt-1 size-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                type="text"
+                                                value={row.level}
+                                                onChange={(e) =>
+                                                    updateFloorRow(row.id, 'level', e.target.value)
+                                                }
+                                                className="w-28 font-bold text-slate-800 dark:text-slate-200 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-primary focus:outline-none text-xs p-0"
                                             />
-                                            <div>
-                                                <Label
-                                                    htmlFor={`service-${svc.id}`}
-                                                    className="text-sm font-bold text-foreground cursor-pointer flex items-center gap-2"
+
+                                            {/* Descripción editable */}
+                                            <input
+                                                type="text"
+                                                value={row.description}
+                                                onChange={(e) =>
+                                                    updateFloorRow(row.id, 'description', e.target.value)
+                                                }
+                                                placeholder="Descripción de la planta"
+                                                className="flex-1 text-slate-600 dark:text-slate-400 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-primary focus:outline-none text-xs p-0"
+                                            />
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {/* M2 editable de la planta */}
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={row.area_m2 === 0 ? '' : row.area_m2}
+                                                onChange={(e) =>
+                                                    updateFloorRow(row.id, 'area_m2', Number(e.target.value))
+                                                }
+                                                placeholder="-"
+                                                className="w-16 text-right font-mono font-bold text-slate-900 dark:text-slate-100 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-primary focus:outline-none text-xs p-0"
+                                            />
+
+                                            {/* Botón eliminar fila */}
+                                            <button
+                                                type="button"
+                                                onClick={() => removeFloorRow(row.id)}
+                                                className="print:hidden text-slate-300 hover:text-red-600 p-0.5 transition-colors"
+                                                title="Eliminar esta planta"
+                                            >
+                                                <Trash2 className="size-3" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Total M2 de la edificación */}
+                                <div className="bg-slate-100/90 dark:bg-slate-800/90 px-4 py-2.5 flex items-center justify-between font-black text-xs">
+                                    <span className="tracking-wider text-slate-700 dark:text-slate-300">
+                                        TOTAL M2
+                                    </span>
+                                    <span className="font-mono text-sm text-[#00253d] dark:text-[#fbad03]">
+                                        {totalFloorsM2}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Separador Central */}
+                        <div className="text-center text-xs italic text-slate-500 dark:text-slate-400 py-1">
+                            La empresa BIMETICA, ofrece sus servicios en:
+                        </div>
+
+                        {/* BLOQUES DE SERVICIOS COTIZADOS */}
+                        <div className="space-y-5">
+                            {activeServices.map((service) => {
+                                // M2 propio de este servicio (Variable dinámica que llena el vendedor)
+                                const serviceM2 = serviceM2Values[service.id] ?? 0;
+                                const { rateBs, subtotal } = evaluateServiceFormula(service, serviceM2);
+
+                                return (
+                                    <div
+                                        key={service.id}
+                                        className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-2xs"
+                                    >
+                                        {/* Barra de Título y Columnas */}
+                                        <div className="grid grid-cols-12 text-xs font-black uppercase tracking-wider">
+                                            <div className="col-span-6 sm:col-span-6 bg-[#fbad03] text-slate-950 px-4 py-2.5 flex items-center justify-between">
+                                                <span className="font-black tracking-wide text-xs sm:text-sm">
+                                                    {service.name}
+                                                </span>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeService(service.id)}
+                                                    className="print:hidden text-[10px] text-slate-900 hover:text-red-700 font-bold uppercase underline transition-colors"
+                                                    title="Quitar este servicio"
                                                 >
-                                                    {svc.name}
-                                                    {svc.uses_floors && (
-                                                        <Badge variant="outline" className="text-[10px] font-semibold text-secondary-800 border-secondary/40 bg-secondary/10">
-                                                            Usa {totalFloorsM2} m² de tabla
-                                                        </Badge>
-                                                    )}
-                                                </Label>
-                                                <p className="mt-0.5 text-xs text-muted-foreground">
-                                                    {svc.description}
-                                                </p>
+                                                    Quitar
+                                                </button>
+                                            </div>
+
+                                            <div className="col-span-2 bg-slate-200 text-slate-900 px-2 py-2.5 text-center flex items-center justify-center font-black">
+                                                M2
+                                            </div>
+                                            <div className="col-span-2 bg-[#00253d] text-white px-2 py-2.5 text-center flex items-center justify-center font-black">
+                                                BS /M2
+                                            </div>
+                                            <div className="col-span-2 bg-[#00253d] text-white px-2 py-2.5 text-center flex items-center justify-center font-black whitespace-nowrap">
+                                                INVERSIÓN BS.
                                             </div>
                                         </div>
 
-                                        <div className="text-right shrink-0 font-mono">
-                                            <span className="text-xs text-muted-foreground block">
-                                                Subtotal
-                                            </span>
-                                            <span className="text-base font-black text-foreground">
-                                                ${svc.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}{' '}
-                                                <span className="text-xs font-normal text-muted-foreground">USD</span>
-                                            </span>
+                                        {/* Cuerpo con Alcance y Costos */}
+                                        <div className="grid grid-cols-12 bg-white dark:bg-slate-900 divide-x divide-slate-100 dark:divide-slate-800 text-xs">
+                                            {/* Columna de Alcance Detallado y Variables Dinámicas Llenables */}
+                                            <div className="col-span-6 sm:col-span-6 p-4 space-y-2 text-slate-600 dark:text-slate-300 leading-relaxed text-[11px]">
+                                                {service.scope.map((item, idx) => (
+                                                    <p key={idx}>{item}</p>
+                                                ))}
+                                                <p className="pt-0.5 font-bold text-red-600 dark:text-red-400 text-[10px] tracking-wide">
+                                                    {service.note}
+                                                </p>
+
+                                                {/* Variables dinámicas secundarias que llena el vendedor */}
+                                                {service.id === 2 && (
+                                                    <div className="mt-2 pt-2 border-t border-dashed border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2 bg-amber-50/70 dark:bg-amber-950/20 p-2 rounded-md">
+                                                        <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+                                                            Renders 3D adicionales (Variable dinámica):
+                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                value={dynamicVariables[2]?.renders_extra ?? 0}
+                                                                onChange={(e) =>
+                                                                    updateDynamicVariable(
+                                                                        2,
+                                                                        'renders_extra',
+                                                                        Math.max(0, Number(e.target.value))
+                                                                    )
+                                                                }
+                                                                className="w-14 text-center font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 text-xs shadow-2xs"
+                                                            />
+                                                            <span className="text-[10px] text-slate-400 font-mono">(+150 Bs c/u)</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {service.id === 1 && (
+                                                    <div className="mt-2 pt-2 border-t border-dashed border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2 bg-amber-50/70 dark:bg-amber-950/20 p-2 rounded-md">
+                                                        <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+                                                            Factor Complejidad (Variable dinámica):
+                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                step="0.1"
+                                                                value={dynamicVariables[1]?.complejidad ?? 1}
+                                                                onChange={(e) =>
+                                                                    updateDynamicVariable(
+                                                                        1,
+                                                                        'complejidad',
+                                                                        Math.max(1, Number(e.target.value))
+                                                                    )
+                                                                }
+                                                                className="w-14 text-center font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 text-xs shadow-2xs"
+                                                            />
+                                                            <span className="text-[10px] text-slate-400 font-mono">(x18 Bs)</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Columna M2 (Variable dinámica que llena el vendedor para este servicio) */}
+                                            <div className="col-span-2 p-3 flex flex-col items-center justify-center">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={serviceM2 === 0 ? '' : serviceM2}
+                                                    onChange={(e) => updateServiceM2(service.id, Number(e.target.value))}
+                                                    placeholder="0"
+                                                    className="w-20 text-center font-mono font-black text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-2 border-slate-300 hover:border-slate-400 focus:border-[#fbad03] focus:ring-1 focus:ring-[#fbad03] rounded-md px-1 py-1 text-sm sm:text-base shadow-2xs transition-colors"
+                                                    title="Variable dinámica: m² cotizados para este servicio"
+                                                />
+                                                <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold mt-1">
+                                                    m² dinámico
+                                                </span>
+                                            </div>
+
+                                            {/* Columna BS / M2 (Fórmula evaluada - SOLO VISUALIZACIÓN) */}
+                                            <div className="col-span-2 p-3 flex flex-col items-center justify-center">
+                                                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-sm">
+                                                    {rateBs.toFixed(2).replace(/\.00$/, '')}
+                                                </span>
+                                                <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium mt-1">
+                                                    Fórmula Bs/m²
+                                                </span>
+                                            </div>
+
+                                            {/* Columna Inversión Bs (Fórmula evaluada - SOLO VISUALIZACIÓN) */}
+                                            <div className="col-span-2 p-3 flex flex-col items-center justify-center font-mono">
+                                                <span className="font-black text-slate-950 dark:text-[#fbad03] text-sm sm:text-base whitespace-nowrap">
+                                                    Bs. {subtotal.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </span>
+                                                <span className="text-[9px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold mt-1">
+                                                    calculado
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
+                                );
+                            })}
 
-                                    {/* Campos variables si está activo */}
-                                    {svc.isChecked && svc.variables.length > 0 && (
-                                        <div className="mt-3 pt-3 border-t grid grid-cols-2 sm:grid-cols-3 gap-3 bg-background/60 p-2.5 rounded-lg">
-                                            {svc.variables.map((v) => (
-                                                <div key={v.name}>
-                                                    <Label className="text-[11px] font-semibold text-muted-foreground">
-                                                        {v.label}
-                                                    </Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={
-                                                            serviceInputs[svc.id]?.[v.name] ??
-                                                            (v.name === 'm2' ? totalFloorsM2 : v.default)
-                                                        }
-                                                        onChange={(e) =>
-                                                            setServiceInputs((prev) => ({
-                                                                ...prev,
-                                                                [svc.id]: {
-                                                                    ...prev[svc.id],
-                                                                    [v.name]: Number(e.target.value),
-                                                                },
-                                                            }))
-                                                        }
-                                                        className="h-7 text-xs font-mono mt-1"
-                                                    />
+                            {activeServices.length === 0 && (
+                                <div className="rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-800 p-8 text-center text-xs text-slate-400 space-y-2">
+                                    <p className="font-semibold text-slate-600 dark:text-slate-300">
+                                        No has seleccionado ningún servicio para esta cotización.
+                                    </p>
+                                    <p>
+                                        Usa el menú desplegable en el panel derecho para agregar servicios al cotizador.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* TÉRMINOS, CONDICIONES Y FIRMA */}
+                        <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-4 sm:p-5 dark:border-slate-700/80 dark:bg-slate-800/40 text-xs space-y-4">
+                            <p className="italic text-slate-500 dark:text-slate-400 text-[11px]">
+                                Esta cotización tiene una validez de 7 días calendario.
+                            </p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                                {/* Términos de Pago (Izquierda) */}
+                                <div className="md:col-span-7 space-y-2">
+                                    <div className="font-bold text-slate-800 dark:text-slate-200">
+                                        Modalidad de Pagos:
+                                    </div>
+                                    <ul className="space-y-1 text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                                        <li>
+                                            • <strong className="text-slate-800 dark:text-slate-100">Al contado:</strong> 1Pago anticipado 100% con beneficio de entrega acelerada.
+                                        </li>
+                                        <li>
+                                            • <strong className="text-slate-800 dark:text-slate-100">De acuerdo a Planilla de pagos:</strong> Inicio 50% de adelanto al suscribir contrato; 50% en Primera presentación formal del anteproyecto.
+                                        </li>
+                                    </ul>
+
+                                    <div className="pt-2 flex items-center gap-1.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                                        <span className="size-2 bg-[#fbad03] inline-block rounded-xs" />
+                                        <span>BIMETICA AEC-STANDARDS ISO 19650 QUALITY VERIFIED</span>
+                                    </div>
+                                </div>
+
+                                {/* Firma Autorizada (Derecha) */}
+                                <div className="md:col-span-5 text-center flex flex-col items-center justify-end pt-4 md:pt-0">
+                                    <div className="w-44 border-t border-slate-400/80 dark:border-slate-500 mb-1" />
+                                    <span className="text-[10px] uppercase tracking-widest text-slate-400">
+                                        FIRMA AUTORIZADA
+                                    </span>
+                                    <span className="font-bold text-slate-800 dark:text-slate-100 mt-1">
+                                        Asesor Comercial
+                                    </span>
+                                    <span className="text-xs text-slate-600 dark:text-slate-300">
+                                        {userName}
+                                    </span>
+                                    <span className="flex items-center gap-1 text-[11px] font-bold text-[#b8860b] dark:text-[#fbad03] mt-0.5">
+                                        <Phone className="size-3" />
+                                        Cel: 71212168
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* COLUMNA DERECHA: MOTOR DE CÁLCULO EN VIVO (4 COLUMNAS) */}
+                    <div className="lg:col-span-4 space-y-4 sticky top-6 print:hidden">
+                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-5">
+                            {/* Cabecera del Widget */}
+                            <div className="flex items-center gap-2">
+                                <div className="flex size-7 items-center justify-center rounded-lg bg-[#fbad03] text-slate-950 font-black text-sm">
+                                    ∑
+                                </div>
+                                <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                                    Motor de Cálculo en Vivo
+                                </h2>
+                            </div>
+
+                            {/* Tarjeta de M2 Evaluado */}
+                            <div className="rounded-lg bg-slate-50 border border-slate-200/80 p-4 dark:bg-slate-800/60 dark:border-slate-700/60 space-y-2">
+                                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                    M2 EVALUADO (PLANTAS)
+                                </span>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-4xl font-black font-mono tracking-tight text-slate-900 dark:text-white">
+                                        {totalFloorsM2}
+                                    </span>
+                                    <span className="text-sm font-semibold text-slate-500">m²</span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 block">
+                                    Suma de plantas de la edificación
+                                </span>
+
+                                <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs">
+                                    <span className="font-bold text-slate-500">Inversión Total:</span>
+                                    <span className="font-mono font-black text-slate-900 dark:text-[#fbad03] text-sm">
+                                        Bs. {totalQuoteBs.toLocaleString('es-BO', { minimumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* SELECT DROPDOWN DE SERVICIOS DISPONIBLES */}
+                            <div className="space-y-3">
+                                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                                    <span>SERVICIOS DISPONIBLES:</span>
+                                    <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                                        {activeServices.length} activos
+                                    </span>
+                                </div>
+
+                                {/* Select Dropdown para Elegir y Agregar */}
+                                <div className="relative">
+                                    <select
+                                        value=""
+                                        onChange={(e) => {
+                                            const sId = Number(e.target.value);
+                                            if (sId) {
+                                                addService(sId);
+                                            }
+                                        }}
+                                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-2xs hover:border-slate-400 focus:border-primary focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 cursor-pointer"
+                                    >
+                                        <option value="" disabled>
+                                            {availableServicesToAdd.length > 0
+                                                ? '+ Seleccionar servicio para agregar...'
+                                                : '✓ Todos los servicios han sido agregados'}
+                                        </option>
+                                        {availableServicesToAdd.map((service) => (
+                                            <option key={service.id} value={service.id}>
+                                                {service.name} (Bs. {service.rate_bs} / m²)
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Lista de Servicios Seleccionados */}
+                                <div className="space-y-2 pt-1">
+                                    {activeServices.map((service) => {
+                                        const serviceM2 = serviceM2Values[service.id] ?? 0;
+                                        const { rateBs, subtotal } = evaluateServiceFormula(service, serviceM2);
+
+                                        return (
+                                            <div
+                                                key={service.id}
+                                                className="group relative flex items-start justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/80"
+                                            >
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-slate-100">
+                                                        <Check className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                        <span className="truncate">{service.name}</span>
+                                                    </div>
+
+                                                    <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                                        {service.description}
+                                                    </div>
+
+                                                    {/* Badge de m2 dinámico para este servicio */}
+                                                    <div className="mt-1 flex items-center gap-1 text-[10px] text-amber-800 dark:text-amber-300 font-medium">
+                                                        <span>M2 servicio:</span>
+                                                        <span className="font-bold">
+                                                            {serviceM2} m²
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="mt-1.5 flex items-center justify-between text-[11px] font-mono border-t border-slate-200/60 dark:border-slate-700/60 pt-1">
+                                                        <span className="text-slate-500 text-[10px]">
+                                                            Fórmula: Bs. {rateBs.toFixed(2)}/m²
+                                                        </span>
+                                                        <span className="font-bold text-slate-900 dark:text-[#fbad03]">
+                                                            Bs. {subtotal.toLocaleString('es-BO', { minimumFractionDigits: 2 })}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            ))}
-                                        </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeService(service.id)}
+                                                    className="size-5 rounded flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/50 transition-colors"
+                                                    title="Quitar servicio de la cotización"
+                                                >
+                                                    <Trash2 className="size-3" />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {activeServices.length === 0 && (
+                                        <p className="text-xs text-slate-400 text-center py-2 italic">
+                                            No hay servicios agregados todavía.
+                                        </p>
                                     )}
                                 </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Columna Derecha (Resumen Financiero en Vivo) */}
-                <div className="space-y-6">
-                    <Card className="sticky top-6 border-2 border-primary/20 shadow-md">
-                        <CardHeader className="bg-primary text-primary-foreground rounded-t-xl pb-4">
-                            <CardTitle className="text-lg font-black tracking-wide">
-                                Resumen de Inversión
-                            </CardTitle>
-                            <CardDescription className="text-primary-foreground/80 text-xs">
-                                Cotización arquitectónica Bimetica
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-5 space-y-4">
-                            <div className="space-y-2.5 text-xs divide-y divide-border/60">
-                                <div className="flex justify-between items-center pb-2">
-                                    <span className="text-muted-foreground">Servicios seleccionados:</span>
-                                    <span className="font-bold text-foreground">
-                                        {calculatedServices.filter((s) => s.isChecked).length} servicios
-                                    </span>
-                                </div>
-
-                                {calculatedServices
-                                    .filter((s) => s.isChecked)
-                                    .map((s) => (
-                                        <div key={s.id} className="flex justify-between items-center pt-2">
-                                            <span className="text-muted-foreground truncate max-w-[160px]">
-                                                {s.name}
-                                            </span>
-                                            <span className="font-mono font-semibold text-foreground">
-                                                ${s.subtotal.toFixed(2)}
-                                            </span>
-                                        </div>
-                                    ))}
-
-                                <div className="flex justify-between items-center pt-2">
-                                    <span className="text-muted-foreground flex items-center gap-1">
-                                        <MapPin className="size-3 text-secondary-600" />
-                                        Viáticos ({currentCity?.name}):
-                                    </span>
-                                    <span className="font-mono font-semibold text-foreground">
-                                        ${cityViatico.toFixed(2)}
-                                    </span>
-                                </div>
                             </div>
 
-                            {/* Totalizador */}
-                            <div className="rounded-xl bg-[#003e65]/10 dark:bg-[#003e65]/30 p-4 border border-primary/20">
-                                <div className="text-xs uppercase font-bold tracking-wider text-muted-foreground">
-                                    Monto Total Acordado
-                                </div>
-                                <div className="mt-1 flex items-baseline justify-between">
-                                    <span className="text-3xl font-black font-mono text-primary">
-                                        ${totalQuoteAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                    </span>
-                                    <span className="text-sm font-semibold text-muted-foreground">
-                                        USD
-                                    </span>
-                                </div>
-                                <div className="mt-2 pt-2 border-t border-primary/10 flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>Equivalente BOB (T/C 6.96):</span>
-                                    <span className="font-mono font-bold text-foreground">
-                                        Bs. {totalQuoteBob.toLocaleString('es-BO')}
-                                    </span>
-                                </div>
-                            </div>
-
+                            {/* Botones de Acción */}
                             <div className="space-y-2 pt-2">
-                                <Button asChild className="w-full bg-[#fbad03] text-primary-950 hover:bg-[#e59d02] font-bold shadow-sm">
-                                    <Link href={initialFormsRoute.index()}>
-                                        <CheckCircle2 className="mr-2 size-4" />
-                                        Formalizar Formulario Inicial
-                                    </Link>
+                                <Button
+                                    type="button"
+                                    onClick={handleSave}
+                                    className="w-full bg-[#00253d] hover:bg-[#003e65] text-white font-bold h-9 text-xs shadow-xs gap-2"
+                                >
+                                    <Save className="size-3.5" />
+                                    Guardar y Sincronizar Cotización
                                 </Button>
-                                <Button asChild variant="outline" className="w-full text-xs">
-                                    <Link href={quotesRoute.index()}>
-                                        Guardar como Borrador
-                                    </Link>
+
+                                {savedNotification && (
+                                    <div className="rounded-md bg-emerald-50 border border-emerald-200 p-2 text-center text-xs font-semibold text-emerald-800">
+                                        ✓ Cotización guardada en el sistema
+                                    </div>
+                                )}
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleWhatsApp}
+                                    className="w-full bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 border-emerald-200/80 font-semibold h-9 text-xs gap-2"
+                                >
+                                    <MessageCircle className="size-3.5 text-emerald-600" />
+                                    Compartir por WhatsApp
                                 </Button>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </main>
+
+            {/* FOOTER DEL SISTEMA */}
+            <footer className="border-t border-slate-200 bg-white/80 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900/80 print:hidden mt-auto">
+                <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+                    <div>
+                        &copy; 2026 BIMETICA ARQUITECTURA &amp; INGENIERÍA | ESTÁNDAR ISO 19650 BIM / AEC VALUATION
+                    </div>
+                    <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-medium">
+                        <Lock className="size-3" />
+                        <span>Entorno Seguro Transaccional</span>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }

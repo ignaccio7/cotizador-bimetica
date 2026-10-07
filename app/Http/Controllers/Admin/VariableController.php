@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Admin\StoreVariableRequest;
+use App\Http\Requests\Admin\UpdateVariableRequest;
+use App\Models\Variable;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,61 +17,69 @@ class VariableController extends Controller
      */
     public function index(): Response
     {
-        $variables = [
-            [
-                'id' => 1,
-                'name' => 'm2',
-                'label' => 'Superficie en Metros Cuadrados',
-                'type' => 'dynamic',
-                'data_type' => 'number',
-                'default_value' => null,
-                'description' => 'Área total o cubierta ingresada por el vendedor o derivada de los grupos de pisos.',
-                'used_in_formulas' => ['Planos 2D', 'Diseño Arquitectónico 3D', 'Cálculo Estructural'],
-            ],
-            [
-                'id' => 2,
-                'name' => 'complejidad',
-                'label' => 'Factor de Complejidad Geométrica',
-                'type' => 'dynamic',
-                'data_type' => 'number',
-                'default_value' => 1.0,
-                'description' => 'Multiplicador entre 1.0 (regular) y 1.5 (irregular/terreno con pendiente pronunciada).',
-                'used_in_formulas' => ['Planos 2D'],
-            ],
-            [
-                'id' => 3,
-                'name' => 'pisos_altura',
-                'label' => 'Cantidad de Pisos / Niveles',
-                'type' => 'dynamic',
-                'data_type' => 'integer',
-                'default_value' => 2,
-                'description' => 'Número de plantas del proyecto para cálculo de esfuerzo sísmico.',
-                'used_in_formulas' => ['Cálculo Estructural'],
-            ],
-            [
-                'id' => 4,
-                'name' => 'pozos',
-                'label' => 'Cantidad de Pozos SPT',
-                'type' => 'dynamic',
-                'data_type' => 'integer',
-                'default_value' => 3,
-                'description' => 'Puntos de ensayo geotécnico para el estudio de suelos.',
-                'used_in_formulas' => ['Estudio de Suelos'],
-            ],
-            [
-                'id' => 5,
-                'name' => 'factor_seguridad_obra',
-                'label' => 'Factor de Contingencia Técnico',
-                'type' => 'static',
-                'data_type' => 'number',
-                'default_value' => 1.05,
-                'description' => 'Margen del 5% aplicado como constante del catálogo.',
-                'used_in_formulas' => [],
-            ],
-        ];
+        $variables = Variable::with(['formulas.service'])
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get()
+            ->map(function (Variable $variable) {
+                $usedInServices = $variable->formulas
+                    ->map(fn ($formula) => $formula->service?->name)
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => $variable->id,
+                    'name' => $variable->name,
+                    'type' => $variable->type,
+                    'default_value' => $variable->default_value !== null ? (float) $variable->default_value : null,
+                    'used_in_services' => $usedInServices,
+                    'used_count' => count($usedInServices),
+                    'created_at' => $variable->created_at?->format('Y-m-d'),
+                ];
+            });
 
         return Inertia::render('admin/variables/index', [
             'variables' => $variables,
         ]);
+    }
+
+    /**
+     * Store a newly created variable in storage.
+     */
+    public function store(StoreVariableRequest $request): RedirectResponse
+    {
+        Variable::create($request->validated());
+
+        return redirect()->route('admin.variables.index')
+            ->with('success', 'Variable creada correctamente.');
+    }
+
+    /**
+     * Update the specified variable in storage.
+     */
+    public function update(UpdateVariableRequest $request, Variable $variable): RedirectResponse
+    {
+        $variable->update($request->validated());
+
+        return redirect()->route('admin.variables.index')
+            ->with('success', 'Variable actualizada correctamente.');
+    }
+
+    /**
+     * Remove the specified variable from storage.
+     */
+    public function destroy(Variable $variable): RedirectResponse
+    {
+        if ($variable->formulas()->exists()) {
+            return redirect()->route('admin.variables.index')
+                ->with('error', 'No se puede eliminar la variable porque está vinculada a una o más fórmulas activas.');
+        }
+
+        $variable->delete();
+
+        return redirect()->route('admin.variables.index')
+            ->with('success', 'Variable eliminada correctamente.');
     }
 }

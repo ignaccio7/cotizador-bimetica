@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Client;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -94,95 +94,130 @@ class QuoteController extends Controller
      */
     public function create(): Response
     {
-        $clients = [
-            [
-                'id' => 1,
-                'code' => '014/2026',
-                'name' => 'Arq. Carlos Meneses',
-                'ci' => '4829103 LP',
-                'phone' => '+591 76543210',
-                'address' => 'Av. Ballivián #1230, Calacoto, La Paz',
-            ],
-            [
-                'id' => 2,
-                'code' => '012/2026',
-                'name' => 'Ing. Valeria Prado',
-                'ci' => '5928192 SC',
-                'phone' => '+591 78901234',
-                'address' => 'Barrio Las Palmas, Calle 4 #12, Santa Cruz',
-            ],
-            [
-                'id' => 3,
-                'code' => '009/2026',
-                'name' => 'Dr. Marcelo Fernández',
-                'ci' => '3920194 CB',
-                'phone' => '+591 71234567',
-                'address' => 'Av. América #450, Cochabamba',
-            ],
-        ];
+        $dbClients = Client::all();
+        $clients = $dbClients->isNotEmpty()
+            ? $dbClients->map(fn ($c) => [
+                'id' => $c->id,
+                'code' => $c->code,
+                'name' => $c->full_name,
+                'ci' => $c->ci ?? '',
+                'phone' => $c->phone ?? '',
+                'address' => $c->address ?? '',
+                'occupation' => $c->occupation ?? '',
+            ])->toArray()
+            : [
+                [
+                    'id' => 1,
+                    'code' => '084/2026',
+                    'name' => 'JANETH / EUNICE MIRANDA NAVIA',
+                    'ci' => '76734409 LP',
+                    'phone' => '76734409',
+                    'address' => 'BAJO SAN ANTONIO',
+                    'occupation' => 'COMERCIANTE',
+                ],
+                [
+                    'id' => 2,
+                    'code' => '014/2026',
+                    'name' => 'Arq. Carlos Meneses',
+                    'ci' => '4829103 LP',
+                    'phone' => '+591 76543210',
+                    'address' => 'Av. Ballivián #1230, Calacoto, La Paz',
+                    'occupation' => 'Arquitecto Independiente',
+                ],
+            ];
 
         $servicesCatalog = [
             [
                 'id' => 1,
                 'name' => 'Planos 2D',
-                'description' => 'Levantamiento planimétrico y distribución funcional 2D detallada.',
-                'uses_floors' => true,
-                'variables' => [
-                    ['name' => 'm2', 'label' => 'Superficie Total (m²)', 'type' => 'number', 'default' => 250],
-                    ['name' => 'complejidad', 'label' => 'Nivel de Complejidad (1-1.5)', 'type' => 'number', 'default' => 1],
+                'description' => 'Esquema hidrosanitario y eléctrico ampliado.',
+                'rate_bs' => 18.00,
+                'scope' => [
+                    '1) Levantamiento planimétrico y distribución funcional 2D detallada.',
+                    '2) Planos completos en formato AutoCAD (DWG) y PDF listos para replanteo.',
+                    '3) Esquemas de instalaciones sanitarias y eléctricas básicas ampliadas.',
+                    '4) Memoria técnica descriptiva y especificaciones generales de replanteo.',
                 ],
-                'base_price' => 850.00,
+                'note' => 'NOTA: NO INCLUYE VISADO MUNICIPAL.',
             ],
             [
                 'id' => 2,
                 'name' => 'Diseño Arquitectónico',
-                'description' => 'Diseño integral conceptual, espacial y volumétrico 3D de alta gama.',
-                'uses_floors' => true,
-                'variables' => [
-                    ['name' => 'm2', 'label' => 'Superficie Total (m²)', 'type' => 'number', 'default' => 250],
-                    ['name' => 'renders_extra', 'label' => 'Renders adicionales', 'type' => 'number', 'default' => 0],
+                'description' => 'Estudio bioclimático de asoleamiento y materiales.',
+                'rate_bs' => 24.00,
+                'scope' => [
+                    '1) Catálogo físico encuadernado de presentación.',
+                    '2) Planos completos en formato AutoCAD (DWG) y PDF listos para replanteo.',
+                    '3) Modelador Digital en BIMX para visualización interactiva móvil/tablet.',
+                    '4) Planos Arquitectónicos de: Esquema de Fundaciones, Planos de Plantas acotadas, Planos de Cortes técnicos, Planos de Elevaciones de Fachadas, Plano de Sitio y Techo con Sistema de desalojo de aguas pluviales o servidas.',
+                    '5) Renders 3D fotorrealistas de Interiores y Exteriores en alta resolución.',
+                    '6) Recorrido Virtual 360° Inmersivo.',
+                    '7) Presupuesto Tentativo y Cómputos Métricos de Construcción.',
                 ],
-                'base_price' => 2400.00,
+                'note' => 'NOTA: NO INCLUYE VISADO MUNICIPAL.',
             ],
             [
                 'id' => 3,
                 'name' => 'Cálculo Estructural',
-                'description' => 'Modelado estructural, memoria de cálculo sísmico y planos de armaduras.',
-                'uses_floors' => true,
-                'variables' => [
-                    ['name' => 'm2', 'label' => 'Superficie Cubierta (m²)', 'type' => 'number', 'default' => 250],
-                    ['name' => 'pisos_altura', 'label' => 'Número de Niveles', 'type' => 'number', 'default' => 2],
+                'description' => 'Cálculo de armaduras, zapatas y memorias sísmicas.',
+                'rate_bs' => 23.50,
+                'scope' => [
+                    '1) Planos estructurales de: Vigas de fundación, Losas de fundación, Zapatas, Muros, Escaleras, Losas y Columnas.',
+                    '2) Memorias de Cálculo Estructural con modelado analítico y combinaciones de cargas NB 1225001.',
+                    '3) Plan de contingencias y verificación de cargas sísmicas y de viento.',
+                    '4) Formulario Resumen de Cálculo Estructural (Alcaldía).',
+                    '5) Especificaciones técnicas y recomendaciones de resistencia de hormigón y aceros.',
                 ],
-                'base_price' => 1600.00,
+                'note' => 'NOTA: NO INCLUYE VISADO COLEGIAL NI TRÁMITES MUNICIPALES.',
             ],
             [
                 'id' => 4,
                 'name' => 'Diseño de Interiores',
-                'description' => 'Ambientación, materiales, iluminación y planos de detalle de mobiliario.',
-                'uses_floors' => false,
-                'variables' => [
-                    ['name' => 'ambientes', 'label' => 'Cantidad de Ambientes', 'type' => 'number', 'default' => 4],
+                'description' => 'Ambientación interior, especificaciones de iluminación y mobiliario.',
+                'rate_bs' => 20.00,
+                'scope' => [
+                    '1) Planos de distribución funcional interior y circulaciones.',
+                    '2) Especificaciones de iluminación técnica, acabados y paleta de color.',
+                    '3) Planos de detalle constructivo de mobiliario fijo a medida.',
+                    '4) Renders interiores 3D fotorrealistas de alta resolución.',
                 ],
-                'base_price' => 1200.00,
+                'note' => 'NOTA: NO INCLUYE COMPRA DIRECTA DE MOBILIARIO.',
             ],
             [
                 'id' => 5,
-                'name' => 'Trámites y Aprobación Municipal',
-                'description' => 'Gestión y visado ante el Colegio de Arquitectos y Gobierno Municipal.',
-                'uses_floors' => false,
-                'variables' => [
-                    ['name' => 'visado_colegio', 'label' => 'Incluye sellos visados (1: Sí, 0: No)', 'type' => 'number', 'default' => 1],
+                'name' => 'Estudio de Suelos (Geotecnia)',
+                'description' => 'Sondeos SPT, ensayos de laboratorio y capacidad portante.',
+                'rate_bs' => 15.00,
+                'scope' => [
+                    '1) Perforaciones y sondeos SPT en sitio según área de emplazamiento.',
+                    '2) Ensayos de laboratorio de mecánica de suelos y granulometría.',
+                    '3) Determinación de capacidad portante admisible del terreno.',
+                    '4) Memoria de recomendaciones geotécnicas para zapatas y losas.',
                 ],
-                'base_price' => 500.00,
+                'note' => 'NOTA: INCLUYE TRASLADO DE EQUIPO DE PERFORACIÓN.',
+            ],
+            [
+                'id' => 6,
+                'name' => 'Trámites y Aprobación Municipal',
+                'description' => 'Gestión y visado ante Colegio de Arquitectos y Alcaldía.',
+                'rate_bs' => 10.00,
+                'scope' => [
+                    '1) Armado y visado técnico de carpetas ante el Colegio de Arquitectos.',
+                    '2) Ingreso formal del expediente ante el Gobierno Autónomo Municipal.',
+                    '3) Seguimiento de observaciones y subsanaciones técnicas.',
+                    '4) Entrega final de planos aprobados y resolución administrativa.',
+                ],
+                'note' => 'NOTA: NO INCLUYE VALORES NI TASAS FISCALES MUNICIPALES.',
             ],
         ];
 
         $cities = [
-            ['id' => 1, 'name' => 'La Paz / El Alto', 'viatico' => 0],
-            ['id' => 2, 'name' => 'Santa Cruz', 'viatico' => 350],
-            ['id' => 3, 'name' => 'Cochabamba', 'viatico' => 280],
-            ['id' => 4, 'name' => 'Tarija', 'viatico' => 420],
-            ['id' => 5, 'name' => 'Sucre', 'viatico' => 380],
+            ['id' => 1, 'name' => 'URBANA CENTRAL (INCLUIDO)', 'viatico' => 0],
+            ['id' => 2, 'name' => 'La Paz / El Alto', 'viatico' => 0],
+            ['id' => 3, 'name' => 'Santa Cruz', 'viatico' => 350],
+            ['id' => 4, 'name' => 'Cochabamba', 'viatico' => 280],
+            ['id' => 5, 'name' => 'Tarija', 'viatico' => 420],
+            ['id' => 6, 'name' => 'Sucre', 'viatico' => 380],
         ];
 
         return Inertia::render('quotes/create', [

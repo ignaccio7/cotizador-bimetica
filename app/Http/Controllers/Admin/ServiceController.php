@@ -3,7 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Admin\StoreServiceRequest;
+use App\Http\Requests\Admin\UpdateServiceRequest;
+use App\Models\Formula;
+use App\Models\Service;
+use App\Models\Variable;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,56 +20,126 @@ class ServiceController extends Controller
      */
     public function index(): Response
     {
-        $services = [
-            [
-                'id' => 1,
-                'name' => 'Planos 2D (Arquitectónico 2D)',
-                'description' => 'Levantamiento planimétrico y diseño arquitectónico 2D.',
-                'formula' => 'm2 < 50 ? 1200 : (m2 * 24 * complejidad)',
-                'variables' => ['m2', 'complejidad'],
-                'is_active' => true,
-                'updated_at' => '2026-10-01',
-            ],
-            [
-                'id' => 2,
-                'name' => 'Diseño Arquitectónico 3D + Renders',
-                'description' => 'Propuesta volumétrica, espacial y modelo BIM 3D con visualización.',
-                'formula' => 'm2 < 30 ? 1600 : (m2 * 56 + renders_extra * 150)',
-                'variables' => ['m2', 'renders_extra'],
-                'is_active' => true,
-                'updated_at' => '2026-10-01',
-            ],
-            [
-                'id' => 3,
-                'name' => 'Cálculo Estructural y Planos de Armado',
-                'description' => 'Análisis estructural estático y dinámico según norma CBH.',
-                'formula' => 'm2 < 100 ? 1400 : (m2 * 18 * (1 + (pisos_altura - 1) * 0.15))',
-                'variables' => ['m2', 'pisos_altura'],
-                'is_active' => true,
-                'updated_at' => '2026-09-28',
-            ],
-            [
-                'id' => 4,
-                'name' => 'Diseño de Interiores',
-                'description' => 'Ambientación interior, especificaciones de iluminación y acabados.',
-                'formula' => 'ambientes * 300',
-                'variables' => ['ambientes'],
-                'is_active' => true,
-                'updated_at' => '2026-09-15',
-            ],
-            [
-                'id' => 5,
-                'name' => 'Estudio de Suelos (Geotecnia)',
-                'description' => 'Sondeos SPT, ensayos de laboratorio y capacidad portante.',
-                'formula' => 'pozos * 450 + 200',
-                'variables' => ['pozos'],
-                'is_active' => true,
-                'updated_at' => '2026-08-30',
-            ],
-        ];
+        $services = Service::with(['formulas.variables'])
+            ->orderBy('id')
+            ->get()
+            ->map(function (Service $service) {
+                return [
+                    'id' => $service->id,
+                    'name' => $service->name,
+                    'description' => $service->description,
+                    'formulas' => $service->formulas->map(function (Formula $formula) {
+                        return [
+                            'id' => $formula->id,
+                            'name' => $formula->name,
+                            'expression' => $formula->expression,
+                            'is_visible' => (bool) $formula->is_visible,
+                            'variables' => $formula->variables->map(fn ($v) => [
+                                'id' => $v->id,
+                                'name' => $v->name,
+                                'type' => $v->type,
+                                'default_value' => $v->default_value !== null ? (float) $v->default_value : null,
+                            ])->values()->all(),
+                            'variable_ids' => $formula->variables->pluck('id')->all(),
+                        ];
+                    })->values()->all(),
+                    'created_at' => $service->created_at?->format('Y-m-d'),
+                ];
+            });
+
+        $availableVariables = Variable::orderBy('type')
+            ->orderBy('name')
+            ->get(['id', 'name', 'type', 'default_value'])
+            ->map(fn ($v) => [
+                'id' => $v->id,
+                'name' => $v->name,
+                'type' => $v->type,
+                'default_value' => $v->default_value !== null ? (float) $v->default_value : null,
+            ]);
 
         return Inertia::render('admin/services/index', [
             'services' => $services,
+            'availableVariables' => $availableVariables,
         ]);
+    }
+
+    /**
+     * Store a newly created service in storage.
+     */
+    public function store(StoreServiceRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($validated) {
+            $service = Service::create([
+                'name' => $validated['name'],
+                'description' => $validated['description'],
+            ]);
+
+            foreach ($validated['formulas'] as $fData) {
+                $formula = Formula::create([
+                    'service_id' => $service->id,
+                    'name' => $fData['name'],
+                    'expression' => $fData['expression'],
+                    'is_visible' => $fData['is_visible'] ?? true,
+                ]);
+
+                if (! empty($fData['variable_ids'])) {
+                    $formula->variables()->sync($fData['variable_ids']);
+                }
+            }
+        });
+
+        return redirect()->route('admin.services.index')
+            ->with('success', 'Servicio y fórmulas creados correctamente.');
+    }
+
+    /**
+     * Update the specified service in storage.
+     */
+    public function update(UpdateServiceRequest $request, Service $service): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($service, $validated) {
+            $service->update([
+                'name' => $validated['name'],
+                'description' => $validated['description'],
+            ]);
+
+            $service->formulas()->delete();
+
+            foreach ($validated['formulas'] as $fData) {
+                $formula = Formula::create([
+                    'service_id' => $service->id,
+                    'name' => $fData['name'],
+                    'expression' => $fData['expression'],
+                    'is_visible' => $fData['is_visible'] ?? true,
+                ]);
+
+                if (! empty($fData['variable_ids'])) {
+                    $formula->variables()->sync($fData['variable_ids']);
+                }
+            }
+        });
+
+        return redirect()->route('admin.services.index')
+            ->with('success', 'Servicio y fórmulas actualizados correctamente.');
+    }
+
+    /**
+     * Remove the specified service from storage.
+     */
+    public function destroy(Service $service): RedirectResponse
+    {
+        if ($service->quoteServices()->exists()) {
+            return redirect()->route('admin.services.index')
+                ->with('error', 'No se puede eliminar el servicio porque ya se encuentra registrado en cotizaciones existentes.');
+        }
+
+        $service->delete();
+
+        return redirect()->route('admin.services.index')
+            ->with('success', 'Servicio eliminado correctamente.');
     }
 }

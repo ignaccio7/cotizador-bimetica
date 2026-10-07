@@ -10,27 +10,36 @@ use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\InitialFormController;
 use App\Http\Controllers\QuoteController;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('quotes.index');
+    if (! auth()->check()) {
+        return redirect()->route('login');
+    }
+
+    return redirect()->route(
+        auth()->user()->role === 'admin' ? 'admin.services.index' : 'quotes.index'
+    );
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 
-    // Comercial & Ventas (Vendedor)
-    Route::get('/quotes', [QuoteController::class, 'index'])->name('quotes.index');
-    Route::get('/quotes/create', [QuoteController::class, 'create'])->name('quotes.create');
-    Route::get('/initial-forms', [InitialFormController::class, 'index'])->name('initial-forms.index');
-    Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');
-    Route::get('/designations', [DesignationController::class, 'index'])->name('designations.index');
-    Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
+    // Comercial & Ventas (Vendedor y Admin supervisor)
+    Route::middleware(['role:seller,admin'])->group(function () {
+        Route::get('/quotes', [QuoteController::class, 'index'])->name('quotes.index');
+        Route::get('/quotes/create', [QuoteController::class, 'create'])->name('quotes.create');
+        Route::get('/initial-forms', [InitialFormController::class, 'index'])->name('initial-forms.index');
+        Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');
+        Route::get('/designations', [DesignationController::class, 'index'])->name('designations.index');
+        Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
+    });
 
-    // Administración & Catálogo (Admin)
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/services', [AdminServiceController::class, 'index'])->name('services.index');
-        Route::get('/variables', [AdminVariableController::class, 'index'])->name('variables.index');
+    // Administración & Catálogo (Estrictamente Admin)
+    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::resource('services', AdminServiceController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('variables', AdminVariableController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('/parameters', [AdminParameterController::class, 'index'])->name('parameters.index');
         Route::get('/contract-templates', [AdminContractTemplateController::class, 'index'])->name('contract-templates.index');
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
@@ -41,7 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 if (app()->environment('local')) {
     Route::get('/dev-login/{role}', function (string $role) {
         $targetRole = $role === 'admin' ? 'admin' : 'seller';
-        $user = \App\Models\User::firstOrCreate(
+        $user = User::firstOrCreate(
             ['email' => $targetRole === 'admin' ? 'admin@bimetica.bo' : 'nestorignaciorg@gmail.com'],
             [
                 'name' => $targetRole === 'admin' ? 'Administrador BIMETICA' : 'Nestor Ignacio Rojas Guarachi',
@@ -52,6 +61,7 @@ if (app()->environment('local')) {
         );
         $user->update(['role' => $targetRole]);
         auth()->login($user);
+
         return redirect()->route($targetRole === 'admin' ? 'admin.services.index' : 'quotes.index');
     })->name('dev.login');
 }
