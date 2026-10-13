@@ -1,25 +1,44 @@
 ---
 name: bimetica-core
-description: Reglas de negocio del Cotizador Bimetica, evaluación de fórmulas con Math.js, grupos de pisos reutilizables y parámetros.
+description: Reglas de negocio del Cotizador Bimetica, flujo de cotización, cálculo de pisos y fórmulas con Math.js, viáticos e identidad corporativa.
 ---
 
 # Bimetica Core Domain Skill
 
-## 1. Motor de Fórmulas
-- Las fórmulas se almacenan en `formulas.expression` como texto.
-- **Sintaxis de Fórmulas**: Compatible con Math.js usando condicionales ternarios:
-  - Ejemplo con mínimo: `m2 < 30 ? 1600 : m2 * 56`
-  - Ejemplo con pozos: `pozos * 450`
-  - Ejemplo simple: `m2 * arancel`
+## 1. Roles del Sistema
+- **Admin**: Catálogo de servicios, fórmulas, variables, parámetros (viáticos por ciudad) y plantillas de contrato.
+- **Vendedor**: Registro de clientes, cotizaciones, formulario inicial, designación técnica y contrato.
+- **Regla Estricta**: No existen roles de Proyectista ni Coordinador. El vendedor es el mismo coordinador en la Designación. Los clientes no acceden al software.
+
+## 2. Flujo del Negocio
+1. **Cliente**: Código correlativo anual `NNN/AAAA` (ej. `001/2026`).
+2. **Cotización (`quotes`)**: Creación en "Borrador".
+3. **Grupos de Pisos (`quote_floor_groups` + `quote_floors`)**: Tablas de m2 reutilizables. Un grupo puede compartirse entre servicios o ser específico de uno.
+4. **Servicios (`quote_services`)**: Cálculo del subtotal evaluando la fórmula del servicio en Math.js con variables dinámicas (`filled_variables`).
+5. **Totalización**: Subtotales + parámetros (viáticos seleccionados por ciudad).
+6. **Formulario Inicial (`initial_forms`)**: Formalización como pseudo-contrato (dirección, modalidad de pago, monto acordado).
+7. **Documentación Post-Formulario (Independiente / No Secuencial)**:
+   - **Hoja de Designación (`designations`)**: Instrucciones técnicas y fecha a cargo del mismo vendedor.
+   - **Contrato (`contracts`)**: Generación con plantilla HTML (`contract_templates`) y placeholders.
+   - *Ambos documentos derivan del Formulario Inicial y pueden elaborarse en orden indistinto.*
+
+## 3. Motor de Cálculo y Fórmulas
+- Las fórmulas se almacenan en `formulas.expression` como texto evaluable con Math.js.
+- **Sintaxis con condicionales ternarios**:
+  - Mínimos de arancel: `m2 < 30 ? 1600 : m2 * 56`
+  - Variables dinámicas: `pozos * 450`
+  - Superficie directa: `m2 * arancel`
 - **Variables**:
-  - Estáticas: El valor sale de `variables.default_value`.
-  - Dinámicas: Salen de `quote_services.filled_variables` (llenadas por el vendedor) o del total de m2 del `quote_floor_groups` asignado.
+  - Estáticas: Valor de `variables.default_value`.
+  - Dinámicas: Obtenidas de `quote_services.filled_variables` o de la sumatoria de m2 del `quote_floor_groups` vinculado.
+- **Redondeo**: Los montos de inversión se redondean hacia arriba por defecto.
 
-## 2. Grupos de Pisos
-- Un servicio de planos puede apuntar a un grupo con pisos del 1 al 4.
-- Un servicio de fachada puede apuntar a otro grupo que solo incluya planta baja.
-- Servicios como "Trámites" o "Estudio de Suelos" dejan `quote_floor_group_id` en `null`.
+## 4. Viáticos y Parámetros
+- Almacenados en la tabla `parameters` (una fila por ciudad).
+- El vendedor selecciona la ciudad mediante un menú desplegable; el sistema inyecta el valor en `quotes.filled_parameters`.
 
-## 3. Viáticos y Parámetros
-- Los viáticos por ciudad se registran en la tabla `parameters`.
-- El vendedor selecciona la ciudad desde un selector en la cotización; el sistema toma el valor predeterminado y lo guarda en `quotes.filled_parameters`.
+## 5. Identidad Visual Bimetica
+- **Primary**: `#003e65` (Azul corporativo principal).
+- **Secondary**: `#fbad03` (Amarillo / dorado arquitectónico).
+- **Tertiary**: `#2684a8` (Azul medio / técnico).
+- **Sidebar**: Fondo Navy `#071526`, compás arquitectónico (`DraftingCompass`), título "BIMETICA", subtítulo "DISEÑO Y CONSTRUCCIÓN", y módulo destacado `COMERCIAL & VENTAS` en dorado.
