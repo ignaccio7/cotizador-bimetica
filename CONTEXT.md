@@ -76,4 +76,3 @@ Una vez registrado el **Formulario Inicial**, se habilitan dos acciones independ
   - Modelos `Formula` y `Variable` con `$fillable` y relación `belongsToMany` vía `formula_variables`.
   - Instalación y helper de Math.js para evaluación en cliente.
   - CRUD de fórmulas asociadas a cada servicio con editor de expresión y sandbox de prueba interactivo.
-  - Consulta detallada en [PLAN_FORMULAS.md](PLAN_FORMULAS.md).
