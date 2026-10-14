@@ -34,8 +34,11 @@ Una vez registrado el **Formulario Inicial**, se habilitan dos acciones independ
 ## 4. Reglas de Negocio Clave
 - **Código de Cliente**: Autogenerado, formato `NNN/AAAA` (correlativo único por año).
 - **Fórmulas y Expresiones**: Evaluadas con Math.js. Los condicionales y mínimos de arancel viven directamente en el texto de `formulas.expression` mediante operadores ternarios (ej: `m2 < 30 ? 1600 : m2 * 56`). No existen tablas de rangos separadas.
+- **Variables**:
+  - `static`: Tienen un `default_value` numérico fijo (ej. aranceles o tarifas estándar por m2).
+  - `dynamic`: No tienen valor por defecto fijo; su valor lo introduce el vendedor en la cotización (ej. número de pozos) o proviene de la sumatoria de m2 del grupo de pisos asociado (`m2`).
 - **Viáticos por Ciudad**: Fila por ciudad configurada en `parameters`. El vendedor selecciona la ciudad en un selector; no introduce montos manuales.
-- **Redondeo**: Los montos de inversión se redondean hacia arriba por defecto.
+- **Redondeo**: Los montos de inversión se redondean hacia arriba por defecto (`Math.ceil` o redondeo superior).
 - **Descuentos**: No implementados en esta etapa.
 - **Contrato**: Plantilla HTML única con placeholders (`{{cliente_nombre}}`, `{{total}}`, etc.) configurada por el admin.
 
@@ -47,10 +50,10 @@ Una vez registrado el **Formulario Inicial**, se habilitan dos acciones independ
 | `users` | Usuarios del sistema (`admin` y `vendedor`). |
 | `clients` | Clientes (`code`, `full_name`, `ci`, `phone`, `address`, etc.). |
 | `parameters` | Configuración global clave-valor (ej. viáticos por ciudad, tipo de cambio). |
-| `services` | Catálogo de servicios de arquitectura. |
-| `variables` | Variables estáticas (`default_value`) o dinámicas (ingresadas por el vendedor). |
-| `formulas` | Expresión matemática por servicio evaluable con Math.js. |
-| `formula_variables` | Pivote N:M entre fórmulas y variables. |
+| `services` | Catálogo de servicios de arquitectura (`name`, `description`). |
+| `variables` | Variables estáticas (`default_value`) o dinámicas (ingresadas por el vendedor o m2 de pisos). |
+| `formulas` | Expresión matemática por servicio evaluable con Math.js (`service_id`, `name`, `expression`, `is_visible`). |
+| `formula_variables` | Pivote N:M entre fórmulas y variables (`formula_id`, `variable_id`). |
 | `quotes` | Cabecera de cotización (`client_id`, `user_id`, `status`, `filled_parameters`, `total_amount`). |
 | `quote_floor_groups` | Grupos de tablas de superficies m2 reutilizables. |
 | `quote_floors` | Pisos individuales dentro de un grupo (`floor_name`, `area`, `description`). |
@@ -59,3 +62,18 @@ Una vez registrado el **Formulario Inicial**, se habilitan dos acciones independ
 | `designations` | Instrucciones técnicas a cargo del mismo vendedor. |
 | `contract_templates` | Plantillas de contrato con placeholders configuradas por el admin. |
 | `contracts` | Contrato emitido y listo para impresión/firma. |
+
+---
+
+## 6. Estado del Proyecto y Hoja de Ruta
+- ✅ **Módulo 1: Catálogo de Servicios y Alcance**:
+  - Migración y Modelo `Service` con `$fillable`.
+  - Seeder con 6 servicios reales de Bimetica y entregables numerados.
+  - FormRequests (`StoreServiceRequest`, `UpdateServiceRequest`) en inglés con mensajes y atributos en español.
+  - `ServiceController` CRUD completo (`index`, `store`, `update`, `destroy`) con mensajes flash compartidos en Inertia.
+  - UI interactiva React 19 + Wayfinder: vista maestro-detalle, componentes modulares en `resources/js/components/services/` (`ServicesList`, `ServiceForm`, `DeleteServiceDialog`), soporte móvil con scroll acotado y auto-scroll, selección automática al crear servicio.
+- ⏳ **Módulo 2: Fórmulas y Variables (Math.js)** (Siguiente sesión):
+  - Modelos `Formula` y `Variable` con `$fillable` y relación `belongsToMany` vía `formula_variables`.
+  - Instalación y helper de Math.js para evaluación en cliente.
+  - CRUD de fórmulas asociadas a cada servicio con editor de expresión y sandbox de prueba interactivo.
+  - Consulta detallada en [PLAN_FORMULAS.md](PLAN_FORMULAS.md).

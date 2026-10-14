@@ -33,3 +33,4 @@ yarn-error.log
 /.pi
 /.mcp.json
 /boost.json
+*.zip
