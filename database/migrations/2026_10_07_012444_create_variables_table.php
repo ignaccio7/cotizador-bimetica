@@ -13,10 +13,13 @@ return new class extends Migration
     {
         Schema::create('variables', function (Blueprint $table) {
             $table->id();
-                $table->string('name', 50);
-                $table->string('type', 50); // static, dynamic
-                $table->decimal('default_value', 15, 2)->nullable();
-                $table->timestamps();
+            $table->string('name', 50)->unique();
+            $table->enum('type', ['static', 'dynamic']);
+            $table->enum('value_type', ['integer', 'decimal', 'string']);
+            $table->string('default_value')->nullable();
+            $table->json('options')->nullable();
+            $table->string('description')->nullable();
+            $table->timestamps();
         });
     }
 

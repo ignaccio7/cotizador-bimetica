@@ -45,12 +45,12 @@ export function ServicesList({
                     Catálogo ({services.length})
                 </span>
                 <div className="relative w-44 shrink-0">
-                    <Search className="absolute top-2.5 left-2.5 size-3.5 text-muted-foreground" />
+                    <Search className="pointer-events-none absolute top-1/2 -translate-y-1/2 left-2.5 size-3.5 text-muted-foreground" />
                     <Input
                         value={searchTerm}
                         onChange={(e) => onSearchChange(e.target.value)}
                         placeholder="Buscar servicio..."
-                        className="h-8 pl-8 text-xs"
+                        className="h-8 ps-8 text-xs"
                     />
                 </div>
             </div>

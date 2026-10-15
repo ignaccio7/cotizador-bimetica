@@ -1,7 +1,8 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { AlertCircle, Check, Plus } from 'lucide-react';
+import { AlertCircle, Calculator, Check, FileText, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { DeleteServiceDialog } from '@/components/services/delete-service-dialog';
+import { FormulaPanel } from '@/components/services/formula-panel';
 import { ServiceForm } from '@/components/services/service-form';
 import {
     ServicesList,
@@ -29,6 +30,7 @@ export default function ServicesIndex({ services = [], selectedId = null }: Prop
     const [selectedServiceId, setSelectedServiceId] = useState<number | null>(
         selectedId ?? services[0]?.id ?? null
     );
+    const [activeTab, setActiveTab] = useState<'scope' | 'formulas'>('scope');
     const [isCreating, setIsCreating] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [deletingService, setDeletingService] = useState<ServiceItem | null>(null);
@@ -144,15 +146,64 @@ export default function ServicesIndex({ services = [], selectedId = null }: Prop
 
                     {/* Columna Derecha: Visor y Editor de Detalle (8 Cols) */}
                     <div id="service-editor-panel" className="lg:col-span-8 scroll-mt-6">
-                        <ServiceForm
-                            selectedService={selectedService}
-                            isCreating={isCreating}
-                            onCancelCreate={() => {
-                                setIsCreating(false);
-                                setSelectedServiceId(services[0]?.id ?? null);
-                            }}
-                            onSuccessCreate={handleSuccessCreate}
-                        />
+                        {isCreating ? (
+                            <ServiceForm
+                                selectedService={selectedService}
+                                isCreating={isCreating}
+                                onCancelCreate={() => {
+                                    setIsCreating(false);
+                                    setSelectedServiceId(services[0]?.id ?? null);
+                                }}
+                                onSuccessCreate={handleSuccessCreate}
+                            />
+                        ) : selectedService ? (
+                            <div className="space-y-4">
+                                {/* Navegación por Pestañas del Servicio */}
+                                <div className="flex items-center gap-1.5 border-b border-border/80 pb-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('scope')}
+                                        className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                                            activeTab === 'scope'
+                                                ? 'bg-primary text-primary-foreground shadow-xs'
+                                                : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                                        }`}
+                                    >
+                                        <FileText className="size-3.5" />
+                                        Alcance y Entregables
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('formulas')}
+                                        className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                                            activeTab === 'formulas'
+                                                ? 'bg-primary text-primary-foreground shadow-xs'
+                                                : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                                        }`}
+                                    >
+                                        <Calculator className="size-3.5" />
+                                        Fórmulas & Variables
+                                    </button>
+                                </div>
+
+                                {/* Contenido según la pestaña activa */}
+                                {activeTab === 'scope' ? (
+                                    <ServiceForm
+                                        selectedService={selectedService}
+                                        isCreating={false}
+                                        onCancelCreate={() => {}}
+                                        onSuccessCreate={handleSuccessCreate}
+                                    />
+                                ) : (
+                                    <FormulaPanel selectedService={selectedService} />
+                                )}
+                            </div>
+                        ) : (
+                            <div className="rounded-xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
+                                Selecciona un servicio del catálogo para ver o editar sus detalles.
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

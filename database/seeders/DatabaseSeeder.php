@@ -16,15 +16,24 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::firstOrCreate(
-            ['email' => 'test@example.com'],
+            ['email' => 'admin@bimetica.bo'],
             [
-                'name' => 'Test User',
+                'name' => 'Admin Bimetica',
+                'password' => bcrypt('password'),
+            ]
+        );
+
+        User::firstOrCreate(
+            ['email' => 'nestorignaciorg@gmail.com'],
+            [
+                'name' => 'Nestor Rojas',
                 'password' => bcrypt('password'),
             ]
         );
 
         $this->call([
             ServiceSeeder::class,
+            VariableSeeder::class,
         ]);
     }
 }

@@ -33,12 +33,14 @@ Una vez registrado el **Formulario Inicial**, se habilitan dos acciones independ
 
 ## 4. Reglas de Negocio Clave
 - **Código de Cliente**: Autogenerado, formato `NNN/AAAA` (correlativo único por año).
-- **Fórmulas y Expresiones**: Evaluadas con Math.js. Los condicionales y mínimos de arancel viven directamente en el texto de `formulas.expression` mediante operadores ternarios (ej: `m2 < 30 ? 1600 : m2 * 56`). No existen tablas de rangos separadas.
-- **Variables**:
-  - `static`: Tienen un `default_value` numérico fijo (ej. aranceles o tarifas estándar por m2).
-  - `dynamic`: No tienen valor por defecto fijo; su valor lo introduce el vendedor en la cotización (ej. número de pozos) o proviene de la sumatoria de m2 del grupo de pisos asociado (`m2`).
+- **Variables (`variables`)**: Tienen **dos dimensiones**:
+  - `type` (`static` / `dynamic`): Quién provee el valor. Las `static` tienen un valor configurado por el admin. Las `dynamic` generan un input editable para el vendedor al cotizar.
+  - `value_type` (`integer` / `decimal` / `string`): Qué tipo de dato es. Las de tipo `string` almacenan opciones válidas en el campo `options` (JSON). El campo `default_value` es siempre `string` nullable para soportar los tres tipos.
+  - Ejemplos: `m2` (dynamic, decimal, default `"0"`), `pozos` (dynamic, integer, default `"0"`), `complejidad` (dynamic, string, default `"medio"`, options `["bajo","medio","alto"]`), `cambiodolar` (static, decimal, default `"12.11"`).
+- **Fórmulas (`formulas`)**: Son las **columnas calculadas** en la tabla de cotización. Expresión evaluable con Math.js vinculada 1:N al servicio. El sistema detecta automáticamente las variables `dynamic` de la expresión y las presenta como inputs; las `static` se muestran como valores fijos de referencia.
+- **Expresiones**: Operadores ternarios de Math.js (ej: `m2 < 30 ? 1600 : m2 * 56`). No existen tablas de rangos separadas.
 - **Viáticos por Ciudad**: Fila por ciudad configurada en `parameters`. El vendedor selecciona la ciudad en un selector; no introduce montos manuales.
-- **Redondeo**: Los montos de inversión se redondean hacia arriba por defecto (`Math.ceil` o redondeo superior).
+- **Redondeo**: Los montos de inversión se redondean hacia arriba por defecto (`Math.ceil`).
 - **Descuentos**: No implementados en esta etapa.
 - **Contrato**: Plantilla HTML única con placeholders (`{{cliente_nombre}}`, `{{total}}`, etc.) configurada por el admin.
 
@@ -51,8 +53,8 @@ Una vez registrado el **Formulario Inicial**, se habilitan dos acciones independ
 | `clients` | Clientes (`code`, `full_name`, `ci`, `phone`, `address`, etc.). |
 | `parameters` | Configuración global clave-valor (ej. viáticos por ciudad, tipo de cambio). |
 | `services` | Catálogo de servicios de arquitectura (`name`, `description`). |
-| `variables` | Variables estáticas (`default_value`) o dinámicas (ingresadas por el vendedor o m2 de pisos). |
-| `formulas` | Expresión matemática por servicio evaluable con Math.js (`service_id`, `name`, `expression`, `is_visible`). |
+| `variables` | Bloques elementales con `name` (identificador único), `type` (static/dynamic), `value_type` (integer/decimal/string), `default_value` (string), `options` (json nullable), `description` (string nullable). Sin campo `label`. |
+| `formulas` | Columnas calculadas en cotización: `service_id`, `name`, `expression` (Math.js), `is_visible`. |
 | `formula_variables` | Pivote N:M entre fórmulas y variables (`formula_id`, `variable_id`). |
 | `quotes` | Cabecera de cotización (`client_id`, `user_id`, `status`, `filled_parameters`, `total_amount`). |
 | `quote_floor_groups` | Grupos de tablas de superficies m2 reutilizables. |
@@ -66,13 +68,23 @@ Una vez registrado el **Formulario Inicial**, se habilitan dos acciones independ
 ---
 
 ## 6. Estado del Proyecto y Hoja de Ruta
-- ✅ **Módulo 1: Catálogo de Servicios y Alcance**:
+- ✅ **Módulo 1: Catálogo de Servicios y Alcance (`/services`)**:
   - Migración y Modelo `Service` con `$fillable`.
   - Seeder con 6 servicios reales de Bimetica y entregables numerados.
   - FormRequests (`StoreServiceRequest`, `UpdateServiceRequest`) en inglés con mensajes y atributos en español.
   - `ServiceController` CRUD completo (`index`, `store`, `update`, `destroy`) con mensajes flash compartidos en Inertia.
-  - UI interactiva React 19 + Wayfinder: vista maestro-detalle, componentes modulares en `resources/js/components/services/` (`ServicesList`, `ServiceForm`, `DeleteServiceDialog`), soporte móvil con scroll acotado y auto-scroll, selección automática al crear servicio.
-- ⏳ **Módulo 2: Fórmulas y Variables (Math.js)** (Siguiente sesión):
-  - Modelos `Formula` y `Variable` con `$fillable` y relación `belongsToMany` vía `formula_variables`.
-  - Instalación y helper de Math.js para evaluación en cliente.
-  - CRUD de fórmulas asociadas a cada servicio con editor de expresión y sandbox de prueba interactivo.
+  - UI interactiva React 19 + Wayfinder: vista maestro-detalle, componentes modulares en `resources/js/components/services/` (`ServicesList`, `ServiceForm`, `DeleteServiceDialog`), soporte móvil con scroll acotado, selección automática al crear servicio.
+- ✅ **Módulo 2A: CRUD Maestro de Variables del Sistema (`/variables`)**:
+  - Migración corregida de `variables` con tipos estrictos (enums `type`, `value_type`, `default_value` string, `options` json, `description`).
+  - Modelo `Variable` con `$fillable`, cast de `options` a array y relación `formulas(): BelongsToMany` vía `formula_variables`.
+  - `VariableSeeder` con las 4 variables base (`m2`, `pozos`, `complejidad`, `cambiodolar`).
+  - FormRequests (`StoreVariableRequest`, `UpdateVariableRequest`) con sanitización de identificadores y mensajes en español.
+  - `VariableController` CRUD completo con protección anti-eliminación si la variable está en uso por fórmulas.
+  - Vista completa `resources/js/pages/variables/index.tsx` con buscador en tiempo real, filtros por tipo (Todas / Dinámicas / Estáticas), modal de creación/edición con Wayfinder `<Form>` y confirmación de borrado.
+  - Enlace en Sidebar: **Variables del Sistema** (icono `Sliders`).
+- ⏳ **Módulo 2B: Fórmulas de Cotización por Servicio (`/services` - Pestaña Fórmulas)** (Siguiente):
+  - UI base completada: pestaña *"Fórmulas & Variables"* en el panel derecho de servicios, formulario con botonera de inserción rápida `[+ m2]` y detección automática de variables al escribir.
+  - Rutas anidadas `Route::resource('services.formulas', FormulaController::class)`.
+  - Modelo `Formula`, pivote `formula_variables` y `FormulaSeeder`.
+  - `FormulaController` con sincronización `$formula->variables()->sync($ids)` y FormRequests.
+  - Evaluador de fórmulas (Math.js) y mini sandbox de cálculo interactivo en vivo.
