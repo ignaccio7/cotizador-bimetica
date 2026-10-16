@@ -82,9 +82,12 @@ Una vez registrado el **Formulario Inicial**, se habilitan dos acciones independ
   - `VariableController` CRUD completo con protección anti-eliminación si la variable está en uso por fórmulas.
   - Vista completa `resources/js/pages/variables/index.tsx` con buscador en tiempo real, filtros por tipo (Todas / Dinámicas / Estáticas), modal de creación/edición con Wayfinder `<Form>` y confirmación de borrado.
   - Enlace en Sidebar: **Variables del Sistema** (icono `Sliders`).
-- ⏳ **Módulo 2B: Fórmulas de Cotización por Servicio (`/services` - Pestaña Fórmulas)** (Siguiente):
-  - UI base completada: pestaña *"Fórmulas & Variables"* en el panel derecho de servicios, formulario con botonera de inserción rápida `[+ m2]` y detección automática de variables al escribir.
-  - Rutas anidadas `Route::resource('services.formulas', FormulaController::class)`.
-  - Modelo `Formula`, pivote `formula_variables` y `FormulaSeeder`.
-  - `FormulaController` con sincronización `$formula->variables()->sync($ids)` y FormRequests.
-  - Evaluador de fórmulas (Math.js) y mini sandbox de cálculo interactivo en vivo.
+- ✅ **Módulo 2B: Fórmulas de Cotización por Servicio (`/services` - Pestaña Fórmulas)**:
+  - Modelo `Formula` con `$fillable`, relación `service()` y pivote `formula_variables` con `Variable`.
+  - Seeder oficial `FormulaSeeder` con fórmulas reales encadenadas para Planos 2D, Diseño 3D, Estructuras, Suelos y Trámites.
+  - Ruta y Wayfinder: `Route::put('services/{service}/formulas', [ServiceFormulaController::class, 'update'])->name('services.formulas.update')`.
+  - `UpdateServiceFormulasRequest` con validación estricta y atributos en español.
+  - `ServiceFormulaController` con persistencia atómica en transacción y sincronización de variables vinculadas.
+  - Evaluador matemático seguro (`evaluateFormula`) con soporte de condicionales ternarios, redondeo (`ceil`, `floor`, `round`) y slugging en cascada.
+  - Componente `FormulaList` con botonera asistente `[+ m2]`, `[+ pozos]`, `[+ complejidad]`, `[+ cambiodolar]`, alternancia de variables vinculadas y conmutador de visibilidad (Visible en cotización vs Interno).
+  - Simulador en vivo en tiempo real (Sandbox) con inputs de prueba y cálculo reactivo en cascada con identidad Bimetica.

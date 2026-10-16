@@ -32,8 +32,11 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call([
+            ClientSeeder::class,
             ServiceSeeder::class,
             VariableSeeder::class,
+            FormulaSeeder::class,
+            ParameterSeeder::class,
         ]);
     }
 }

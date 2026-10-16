@@ -1,15 +1,11 @@
-import { Layers, Search, Trash2 } from 'lucide-react';
+import { Calculator, Layers, Search, Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import type { ServiceItem } from '@/types';
 
-export interface ServiceItem {
-    id: number;
-    name: string;
-    description: string | null;
-    created_at?: string;
-}
+export type { ServiceItem };
 
 interface ServicesListProps {
     services: ServiceItem[];
@@ -59,6 +55,7 @@ export function ServicesList({
             <div className="space-y-2 max-h-[300px] sm:max-h-[380px] lg:max-h-[calc(100vh-220px)] overflow-y-auto pr-1 focus:outline-none scroll-smooth">
                 {filteredServices.map((item) => {
                     const isSelected = !isCreating && selectedServiceId === item.id;
+                    const formulasCount = item.formulas?.length ?? 0;
 
                     return (
                         <div
@@ -91,6 +88,17 @@ export function ServicesList({
                             <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                                 {item.description || 'Sin descripción registrada.'}
                             </p>
+
+                            {/* Badge de fórmulas configuradas */}
+                            <div className="mt-2.5 flex items-center gap-1.5">
+                                <Badge
+                                    variant="outline"
+                                    className="text-[10px] font-medium bg-secondary-50/60 text-secondary-900 border-secondary-300/80 dark:bg-secondary-950/40 dark:text-secondary-300 dark:border-secondary-800"
+                                >
+                                    <Calculator className="mr-1 size-3 text-secondary-600 dark:text-secondary-400" />
+                                    {formulasCount} {formulasCount === 1 ? 'fórmula' : 'fórmulas'}
+                                </Badge>
+                            </div>
 
                             <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-2.5 text-[11px] text-muted-foreground">
                                 <span>

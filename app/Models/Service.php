@@ -18,4 +18,14 @@ class Service extends Model
         'name',
         'description',
     ];
+
+    /**
+     * Get the formulas configured for this service.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<\App\Models\Formula, $this>
+     */
+    public function formulas(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Formula::class)->orderBy('id');
+    }
 }

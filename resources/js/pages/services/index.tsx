@@ -10,7 +10,7 @@ import {
 } from '@/components/services/services-list';
 import { Button } from '@/components/ui/button';
 import servicesRoute from '@/routes/services';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, VariableItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -21,10 +21,15 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 interface Props {
     services?: ServiceItem[];
+    availableVariables?: VariableItem[];
     selectedId?: number | null;
 }
 
-export default function ServicesIndex({ services = [], selectedId = null }: Props) {
+export default function ServicesIndex({
+    services = [],
+    availableVariables = [],
+    selectedId = null,
+}: Props) {
     const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
 
     const [selectedServiceId, setSelectedServiceId] = useState<number | null>(
@@ -196,7 +201,10 @@ export default function ServicesIndex({ services = [], selectedId = null }: Prop
                                         onSuccessCreate={handleSuccessCreate}
                                     />
                                 ) : (
-                                    <FormulaPanel selectedService={selectedService} />
+                                    <FormulaPanel
+                                        selectedService={selectedService}
+                                        availableVariables={availableVariables}
+                                    />
                                 )}
                             </div>
                         ) : (
