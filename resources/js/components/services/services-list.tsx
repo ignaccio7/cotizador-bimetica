@@ -4,11 +4,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+import type { FormulaMock } from '@/components/services/formulas/formula-types';
+
 export interface ServiceItem {
     id: number;
     name: string;
     description: string | null;
     created_at?: string;
+    formulas?: FormulaMock[];
 }
 
 interface ServicesListProps {
@@ -69,11 +72,10 @@ export function ServicesList({
                                     document.getElementById('service-editor-panel')?.scrollIntoView({ behavior: 'smooth' });
                                 }
                             }}
-                            className={`cursor-pointer rounded-xl border p-4 transition-all duration-150 ${
-                                isSelected
-                                    ? 'border-primary bg-primary/5 shadow-xs ring-1 ring-primary/20'
-                                    : 'border-border bg-card hover:border-muted-foreground/30'
-                            }`}
+                            className={`cursor-pointer rounded-xl border p-4 transition-all duration-150 ${isSelected
+                                ? 'border-primary bg-primary/5 shadow-xs ring-1 ring-primary/20'
+                                : 'border-border bg-card hover:border-muted-foreground/30'
+                                }`}
                         >
                             <div className="flex items-start justify-between gap-2">
                                 <h3 className="text-sm leading-tight font-bold text-foreground">

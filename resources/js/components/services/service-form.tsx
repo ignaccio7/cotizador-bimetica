@@ -61,8 +61,8 @@ export function ServiceForm({
                                     <Input
                                         id="create-name"
                                         name="name"
-                                        placeholder="ej. PLANOS 2D, DISEÑO ARQUITECTÓNICO 3D"
-                                        className="mt-1.5 font-bold text-sm tracking-wide uppercase bg-background"
+                                        placeholder="ej. Planos 2D, Diseño Arquitectónico 3D"
+                                        className="mt-1.5 font-bold text-sm tracking-wide bg-background"
                                         required
                                         autoFocus
                                     />
@@ -158,8 +158,8 @@ export function ServiceForm({
                                     id={`edit-name-${selectedService.id}`}
                                     name="name"
                                     defaultValue={selectedService.name}
-                                    placeholder="ej. PLANOS 2D, DISEÑO ARQUITECTÓNICO 3D"
-                                    className="mt-1.5 font-bold text-sm tracking-wide uppercase"
+                                    placeholder="ej. Planos 2D, Diseño Arquitectónico 3D"
+                                    className="mt-1.5 font-bold text-sm tracking-wide"
                                     required
                                 />
                                 <InputError message={errors.name} className="mt-1.5" />

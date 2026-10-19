@@ -21,29 +21,31 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 interface Props {
     services?: ServiceItem[];
-    selectedId?: number | null;
+    availableVariables?: string[];
 }
 
-export default function ServicesIndex({ services = [], selectedId = null }: Props) {
+export default function ServicesIndex({
+    services = [],
+    availableVariables = [],
+}: Props) {
     const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
 
     const [selectedServiceId, setSelectedServiceId] = useState<number | null>(
-        selectedId ?? services[0]?.id ?? null
+        services[0]?.id ?? null
     );
     const [activeTab, setActiveTab] = useState<'scope' | 'formulas'>('scope');
     const [isCreating, setIsCreating] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [deletingService, setDeletingService] = useState<ServiceItem | null>(null);
 
-    // Sincronizar selección cuando se recibe un selectedId o cuando la lista cambia
+    // Si la lista cambia y no hay nada seleccionado (o el servicio actual fue eliminado), seleccionar el primero
     useEffect(() => {
-        if (selectedId) {
-            setSelectedServiceId(selectedId);
-            setIsCreating(false);
-        } else if (!isCreating && selectedServiceId === null && services.length > 0) {
-            setSelectedServiceId(services[0].id);
+        if (!isCreating && services.length > 0) {
+            if (selectedServiceId === null || !services.some((s) => s.id === selectedServiceId)) {
+                setSelectedServiceId(services[0].id);
+            }
         }
-    }, [selectedId, services, isCreating, selectedServiceId]);
+    }, [services, selectedServiceId, isCreating]);
 
     const selectedService = useMemo(() => {
         return services.find((s) => s.id === selectedServiceId) ?? null;
@@ -54,14 +56,8 @@ export default function ServicesIndex({ services = [], selectedId = null }: Prop
         setSelectedServiceId(null);
     };
 
-    const handleSuccessCreate = (page?: any) => {
+    const handleSuccessCreate = () => {
         setIsCreating(false);
-        const newId = page?.props?.selectedId ?? page?.props?.services?.[0]?.id;
-        if (newId) {
-            setSelectedServiceId(newId);
-        } else if (services.length > 0) {
-            setSelectedServiceId(services[0].id);
-        }
     };
 
     const handleSelectService = (service: ServiceItem) => {
@@ -196,7 +192,10 @@ export default function ServicesIndex({ services = [], selectedId = null }: Prop
                                         onSuccessCreate={handleSuccessCreate}
                                     />
                                 ) : (
-                                    <FormulaPanel selectedService={selectedService} />
+                                    <FormulaPanel
+                                        selectedService={selectedService}
+                                        availableVariables={availableVariables}
+                                    />
                                 )}
                             </div>
                         ) : (

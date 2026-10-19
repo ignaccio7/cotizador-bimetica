@@ -5,23 +5,46 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
 use App\Models\Service;
+use App\Models\Variable;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ServiceController extends Controller
 {
     /**
-     * Display a listing of services.
+     * Display a listing of services with their formulas and available variables.
      */
-    public function index(Request $request): Response
+    public function index(): Response
     {
-        $services = Service::orderBy('created_at', 'desc')->get(['id', 'name', 'description', 'created_at']);
+        $services = Service::with([
+            'formulas' => function ($query) {
+                $query->with('variables:id,name')->orderBy('id', 'asc');
+            },
+        ])
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'name', 'description', 'created_at']);
+
+        // Mapear fórmulas para que el frontend reciba directamente el arreglo variable_names
+        $services->each(function ($service) {
+            $service->formulas->transform(function ($formula) {
+                return [
+                    'id' => $formula->id,
+                    'service_id' => $formula->service_id,
+                    'name' => $formula->name,
+                    'code' => $formula->code,
+                    'expression' => $formula->expression,
+                    'is_visible' => (bool) $formula->is_visible,
+                    'variable_names' => $formula->variables->pluck('name')->values()->all(),
+                ];
+            });
+        });
+
+        $availableVariables = Variable::orderBy('name', 'asc')->pluck('name')->values()->all();
 
         return Inertia::render('services/index', [
             'services' => $services,
-            'selectedId' => $request->integer('selected') ?: null,
+            'availableVariables' => $availableVariables,
         ]);
     }
 
@@ -30,9 +53,9 @@ class ServiceController extends Controller
      */
     public function store(StoreServiceRequest $request): RedirectResponse
     {
-        $service = Service::create($request->validated());
+        Service::create($request->validated());
 
-        return redirect()->route('services.index', ['selected' => $service->id])
+        return redirect()->route('services.index')
             ->with('success', 'Servicio creado correctamente.');
     }
 

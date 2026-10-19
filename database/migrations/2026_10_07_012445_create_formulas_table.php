@@ -13,11 +13,14 @@ return new class extends Migration
     {
         Schema::create('formulas', function (Blueprint $table) {
             $table->id();
-                $table->foreignId('service_id')->constrained()->cascadeOnDelete();
-                $table->string('name', 100);
-                $table->text('expression');
-                $table->boolean('is_visible')->default(false);
-                $table->timestamps();
+            $table->foreignId('service_id')->constrained()->cascadeOnDelete();
+            $table->string('name', 100);
+            $table->string('code', 50);
+            $table->text('expression');
+            $table->boolean('is_visible')->default(false);
+            $table->timestamps();
+
+            $table->unique(['service_id', 'code']);
         });
     }
 
