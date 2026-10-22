@@ -5,15 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import formulasRoute from '@/routes/services/formulas';
 import { FormulaForm } from './formulas/formula-form';
-import { FormulaItem } from './formulas/formula-item';
-import { FormulaMock, MOCK_FORMULAS } from './formulas/formula-types';
+import { FormulaCard } from './formulas/formula-item';
+import { FormulaSandboxModal } from './formulas/formula-sandbox-modal';
+import type { FormulaItem } from './formulas/formula-types';
 
-export type { FormulaMock };
-export { MOCK_FORMULAS };
+export type { FormulaItem };
 
 interface FormulaListProps {
     serviceId: number;
-    formulas?: FormulaMock[];
+    formulas?: FormulaItem[];
     serviceName?: string;
     availableVariableNames?: string[];
 }
@@ -25,14 +25,15 @@ export function FormulaList({
     availableVariableNames = ['m2', 'pozos', 'complejidad', 'cambiodolar'],
 }: FormulaListProps) {
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingFormula, setEditingFormula] = useState<FormulaMock | null>(null);
+    const [editingFormula, setEditingFormula] = useState<FormulaItem | null>(null);
+    const [testingFormula, setTestingFormula] = useState<FormulaItem | null>(null);
 
     const handleStartCreate = () => {
         setEditingFormula(null);
         setIsFormOpen(true);
     };
 
-    const handleStartEdit = (formula: FormulaMock) => {
+    const handleStartEdit = (formula: FormulaItem) => {
         setEditingFormula(formula);
         setIsFormOpen(true);
     };
@@ -110,16 +111,25 @@ export function FormulaList({
                 ) : (
                     <div className="space-y-2.5">
                         {formulas.map((formula, index) => (
-                            <FormulaItem
+                            <FormulaCard
                                 key={formula.id}
                                 formula={formula}
                                 index={index}
                                 onEdit={handleStartEdit}
                                 onDelete={handleDeleteFormula}
+                                onTest={(f) => setTestingFormula(f)}
                             />
                         ))}
                     </div>
                 )}
+
+                {/* Modal de Prueba / Simulador de Cálculo (Sandbox) */}
+                <FormulaSandboxModal
+                    formula={testingFormula}
+                    allFormulas={formulas}
+                    open={Boolean(testingFormula)}
+                    onOpenChange={(open) => !open && setTestingFormula(null)}
+                />
             </CardContent>
         </Card>
     );

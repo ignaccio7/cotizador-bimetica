@@ -1,16 +1,17 @@
-import { Code2, Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
+import { Calculator, Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FormulaMock } from './formula-types';
+import { FormulaItem } from './formula-types';
 
-interface FormulaItemProps {
-    formula: FormulaMock;
+interface FormulaCardProps {
+    formula: FormulaItem;
     index: number;
-    onEdit: (formula: FormulaMock) => void;
+    onEdit: (formula: FormulaItem) => void;
     onDelete: (id: number) => void;
+    onTest: (formula: FormulaItem) => void;
 }
 
-export function FormulaItem({ formula, index, onEdit, onDelete }: FormulaItemProps) {
+export function FormulaCard({ formula, index, onEdit, onDelete, onTest }: FormulaCardProps) {
     return (
         <div className="rounded-lg border border-border/80 bg-background p-3 space-y-2 transition-all hover:border-primary/30">
             <div className="flex items-center justify-between gap-2">
@@ -28,7 +29,7 @@ export function FormulaItem({ formula, index, onEdit, onDelete }: FormulaItemPro
                     )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                     {formula.is_visible ? (
                         <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700/60 text-[10px] gap-1 font-medium">
                             <Eye className="size-3" />
@@ -43,6 +44,17 @@ export function FormulaItem({ formula, index, onEdit, onDelete }: FormulaItemPro
                             Cálculo Interno
                         </Badge>
                     )}
+
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onTest(formula)}
+                        className="size-7 text-muted-foreground hover:text-secondary-600 dark:hover:text-secondary-400 cursor-pointer"
+                        title="Simular / Probar cálculo (Sandbox)"
+                    >
+                        <Calculator className="size-3.5" />
+                    </Button>
 
                     <Button
                         type="button"
@@ -69,8 +81,7 @@ export function FormulaItem({ formula, index, onEdit, onDelete }: FormulaItemPro
             </div>
 
             {/* Expresión Matemática */}
-            <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-1.5 border border-border/50">
-                <Code2 className="size-3.5 text-primary shrink-0" />
+            <div className="rounded-md bg-muted/40 px-3 py-1.5 border border-border/50">
                 <code className="text-xs font-mono font-bold text-primary break-all">
                     {formula.expression}
                 </code>
@@ -101,3 +112,6 @@ export function FormulaItem({ formula, index, onEdit, onDelete }: FormulaItemPro
         </div>
     );
 }
+
+// Alias para mantener compatibilidad si se importa con el nombre anterior
+export { FormulaCard as FormulaItem };

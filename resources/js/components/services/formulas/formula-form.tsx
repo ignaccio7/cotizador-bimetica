@@ -7,11 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import formulasRoute from '@/routes/services/formulas';
 import { FormulaAssistant } from './formula-assistant';
-import { FormulaMock } from './formula-types';
+import { FormulaItem } from './formula-types';
 
 interface FormulaFormProps {
     serviceId: number;
-    initialFormula?: FormulaMock | null;
+    initialFormula?: FormulaItem | null;
     availableVariableNames?: string[];
     previousFormulaCodes?: string[];
     onSuccess: () => void;

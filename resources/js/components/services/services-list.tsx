@@ -4,14 +4,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-import type { FormulaMock } from '@/components/services/formulas/formula-types';
+import type { FormulaItem } from '@/components/services/formulas/formula-types';
 
 export interface ServiceItem {
     id: number;
     name: string;
     description: string | null;
     created_at?: string;
-    formulas?: FormulaMock[];
+    formulas?: FormulaItem[];
 }
 
 interface ServicesListProps {

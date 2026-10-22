@@ -19,13 +19,13 @@ class ServiceController extends Controller
     {
         $services = Service::with([
             'formulas' => function ($query) {
-                $query->with('variables:id,name')->orderBy('id', 'asc');
+                $query->with('variables:id,name,type,value_type,default_value')->orderBy('id', 'asc');
             },
         ])
             ->orderBy('created_at', 'desc')
             ->get(['id', 'name', 'description', 'created_at']);
 
-        // Mapear fórmulas para que el frontend reciba directamente el arreglo variable_names
+        // Mapear fórmulas para que el frontend reciba directamente sus variables asociadas
         $services->each(function ($service) {
             $service->formulas->transform(function ($formula) {
                 return [
@@ -36,6 +36,15 @@ class ServiceController extends Controller
                     'expression' => $formula->expression,
                     'is_visible' => (bool) $formula->is_visible,
                     'variable_names' => $formula->variables->pluck('name')->values()->all(),
+                    'variables' => $formula->variables->map(function ($v) {
+                        return [
+                            'id' => $v->id,
+                            'name' => $v->name,
+                            'type' => $v->type,
+                            'value_type' => $v->value_type,
+                            'default_value' => $v->default_value,
+                        ];
+                    })->values()->all(),
                 ];
             });
         });
