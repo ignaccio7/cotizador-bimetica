@@ -4,7 +4,7 @@ Este documento contiene las reglas obligatorias para cualquier agente (Antigravi
 
 ## 1. Stack Tecnológico Estricto
 - **Backend**: Laravel 13 (PHP 8.3/8.4), PostgreSQL.
-- **Frontend**: React 19, Inertia.js v3, TypeScript, Tailwind CSS v4.
+- **Frontend**: React 19, Inertia.js v3, TypeScript, Tailwind CSS v4, Zustand (estado interactivo del cotizador con reset al entrar a la página).
 - **Enrutamiento**: Laravel Wayfinder (`@/routes/*`), sin URLs harcodeadas.
 - **Autenticación**: Laravel Fortify (backend headless).
 - **Iconos y UI**: `lucide-react`, componentes base de Radix UI.
@@ -14,7 +14,7 @@ Este documento contiene las reglas obligatorias para cualquier agente (Antigravi
 2. **NO inventar roles ni usuarios**: Solo existen `admin` y `vendedor`. En la Designación, el coordinador técnico es el mismo vendedor. Los clientes no tienen login ni cuenta.
 3. **NO usar `$guarded`**: Todo modelo Eloquent usa obligatoriamente `$fillable`.
 4. **NO harcodear URLs**: NUNCA escribir strings como `'/api/...'` o `post('/login')` en React. Toda ruta se importa de `@/routes/*`.
-5. **NO instalar paquetes adicionales**: Prohibido agregar WebSockets, Queues complejas ni Redis.
+5. **NO instalar paquetes de backend adicionales**: Prohibido agregar WebSockets, Queues complejas ni Redis. (Se permite `zustand` en frontend para el estado interactivo del cotizador).
 
 ## 3. Idioma y Nomenclatura
 - **Backend (PHP / BD)**: **Estrictamente en Inglés**.
@@ -32,7 +32,7 @@ Este documento contiene las reglas obligatorias para cualquier agente (Antigravi
 
 ## 5. Flujo del Negocio
 1. **Cliente**: Registro con código autogenerado correlativo anual `NNN/AAAA`.
-2. **Cotización (`quotes`)**: Creación en "Borrador", asociación de grupos de pisos reutilizables y cálculo de servicios con fórmulas Math.js. Totalización con viáticos fijos por ciudad (`parameters`).
+2. **Cotización (`quotes`)**: Creación en "Borrador", asociación de grupos de pisos reutilizables y cálculo de servicios con fórmulas Math.js. Los inputs de variables por servicio son siempre editables por el usuario (la vinculación con tablas no bloquea la edición). Totalización con viáticos fijos por ciudad (`parameters`).
 3. **Formulario Inicial (`initial_forms`)**: Formalización como pseudo-contrato (dirección de obra, modalidad de pago, monto acordado).
 4. **Fase Documental Post-Formulario (Independiente / No Secuencial)**:
    - **Hoja de Designación (`designations`)**: Registro de instrucciones técnicas y fecha a cargo del mismo vendedor.

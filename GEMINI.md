@@ -4,7 +4,7 @@ Documento de contexto maestro para Gemini CLI.
 
 ## Stack y Restricciones
 - **Backend**: Laravel 13, PostgreSQL, Laravel Fortify, FormRequests dedicados.
-- **Frontend**: React 19, Inertia.js v3, TypeScript, Tailwind CSS v4.
+- **Frontend**: React 19, Inertia.js v3, TypeScript, Tailwind CSS v4, Zustand (estado interactivo del cotizador con reset al entrar).
 - **Enrutamiento**: Laravel Wayfinder (`@/routes/*`). Prohibido escribir URLs manuales.
 - **Formularios**: Componente `<Form {...action.form()}>` de Wayfinder. Prohibido instalar o usar Zod / React Hook Form.
 - **Modelos Eloquent**: Obligatorio `$fillable`. Prohibido `$guarded`.
@@ -20,7 +20,7 @@ Documento de contexto maestro para Gemini CLI.
 
 ## Flujo del Negocio
 1. **Cliente**: Registro con código anual `NNN/AAAA`.
-2. **Cotización (`quotes`)**: Borrador con grupos de pisos reutilizables y servicios calculados con Math.js. Total con viáticos.
+2. **Cotización (`quotes`)**: Borrador con grupos de pisos reutilizables y servicios calculados con Math.js. Inputs de variables por servicio siempre editables manualmente. Total con viáticos.
 3. **Formulario Inicial (`initial_forms`)**: Formalización comercial y técnica previa.
 4. **Fase Documental Post-Formulario (No Secuencial)**:
    - **Hoja de Designación (`designations`)**: A cargo del mismo vendedor.
