@@ -94,10 +94,7 @@ export function FormulaList({
                         serviceId={serviceId}
                         initialFormula={editingFormula}
                         availableVariableNames={availableVariableNames}
-                        previousFormulaCodes={formulas
-                            .filter((f) => !editingFormula || f.id !== editingFormula.id)
-                            .map((f) => f.code)
-                            .filter(Boolean)}
+                        allFormulas={formulas}
                         onSuccess={handleCancelForm}
                         onCancel={handleCancelForm}
                     />

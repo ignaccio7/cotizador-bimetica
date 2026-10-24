@@ -2,7 +2,8 @@ import { Calculator, Check, Info, Layers, Plus, Sparkles } from 'lucide-react';
 
 interface FormulaAssistantProps {
     availableVariableNames: string[];
-    previousFormulaCodes?: string[];
+    otherFormulaCodes?: string[];
+    disabledFormulaCodes?: string[];
     detectedVariables: string[];
     onInsertVariable: (varName: string) => void;
     onInsertOperator: (op: string) => void;
@@ -13,7 +14,8 @@ interface FormulaAssistantProps {
 
 export function FormulaAssistant({
     availableVariableNames,
-    previousFormulaCodes = [],
+    otherFormulaCodes = [],
+    disabledFormulaCodes = [],
     detectedVariables,
     onInsertVariable,
     onInsertOperator,
@@ -62,37 +64,45 @@ export function FormulaAssistant({
                 </div>
             </div>
 
-            {/* 2. Fórmulas Previas de este Servicio (Resultados Encadenados) */}
-            {previousFormulaCodes.length > 0 && (
+            {/* 2. Otras Fórmulas de este Servicio (Resultados Encadenados) */}
+            {otherFormulaCodes.length > 0 && (
                 <div className="space-y-1.5 pt-2 border-t border-border/60">
                     <div className="flex items-center justify-between text-[11px]">
                         <span className="font-semibold text-secondary-900 dark:text-secondary-200 flex items-center gap-1">
                             <Layers className="size-3.5 text-secondary-600" />
-                            Fórmulas Previas de este Servicio:
+                            Fórmulas de este Servicio:
                         </span>
                         <span className="text-[10px] text-muted-foreground">
-                            Usa el resultado de columnas anteriores
+                            Usa el resultado de otras columnas del servicio
                         </span>
                     </div>
 
                     <div className="flex flex-wrap gap-1.5">
-                        {previousFormulaCodes.map((code) => {
+                        {otherFormulaCodes.map((code) => {
                             const isUsed = detectedVariables.includes(code);
+                            const isCircular = disabledFormulaCodes.includes(code);
 
                             return (
                                 <button
                                     key={code}
                                     type="button"
+                                    disabled={isCircular}
                                     onClick={() => onInsertVariable(code)}
-                                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono font-medium border transition-colors cursor-pointer ${
-                                        isUsed
-                                            ? 'bg-secondary-600 text-white border-secondary-600 font-bold shadow-2xs'
-                                            : 'bg-secondary-500/10 hover:bg-secondary-500/20 text-secondary-900 dark:text-secondary-100 border-secondary-400/40 hover:border-secondary-500'
+                                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono font-medium border transition-colors ${
+                                        isCircular
+                                            ? 'opacity-40 cursor-not-allowed bg-muted text-muted-foreground border-dashed border-border'
+                                            : isUsed
+                                            ? 'bg-secondary-600 text-white border-secondary-600 font-bold shadow-2xs cursor-pointer'
+                                            : 'bg-secondary-500/10 hover:bg-secondary-500/20 text-secondary-900 dark:text-secondary-100 border-secondary-400/40 hover:border-secondary-500 cursor-pointer'
                                     }`}
-                                    title={`Insertar resultado de fórmula previa: ${code}`}
+                                    title={
+                                        isCircular
+                                            ? `Bloqueado: "${code}" ya depende de esta fórmula (causaría dependencia circular)`
+                                            : `Insertar resultado de fórmula: ${code}`
+                                    }
                                 >
                                     <Plus className="size-3 text-secondary-600 dark:text-secondary-400" />
-                                    <span>{code}</span>
+                                    <span className={isCircular ? 'line-through' : ''}>{code}</span>
                                     {isUsed && <Check className="size-3 ml-0.5" />}
                                 </button>
                             );

@@ -93,12 +93,12 @@ export function FormulaCard({ formula, index, onEdit, onDelete, onTest }: Formul
                     Variables:
                 </span>
                 <div className="flex flex-wrap gap-1">
-                    {formula.variable_names.length === 0 ? (
+                    {(formula.variable_names ?? []).length === 0 ? (
                         <span className="text-[10px] text-muted-foreground italic">
                             Sin variables
                         </span>
                     ) : (
-                        formula.variable_names.map((varName) => (
+                        (formula.variable_names ?? []).map((varName) => (
                             <span
                                 key={varName}
                                 className="rounded bg-primary/10 px-1.5 py-0.2 font-mono text-[10px] font-bold text-primary"

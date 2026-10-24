@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Eye, EyeOff, Pencil, Plus, X } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import formulasRoute from '@/routes/services/formulas';
 import { FormulaAssistant } from './formula-assistant';
+import { resolveFormulaDependencies } from '@/lib/formula-validator';
 import { FormulaItem } from './formula-types';
 
 interface FormulaFormProps {
     serviceId: number;
     initialFormula?: FormulaItem | null;
     availableVariableNames?: string[];
-    previousFormulaCodes?: string[];
+    allFormulas?: FormulaItem[];
     onSuccess: () => void;
     onCancel: () => void;
 }
@@ -31,7 +32,7 @@ export function FormulaForm({
     serviceId,
     initialFormula = null,
     availableVariableNames = ['m2', 'pozos', 'complejidad', 'cambiodolar'],
-    previousFormulaCodes = [],
+    allFormulas = [],
     onSuccess,
     onCancel,
 }: FormulaFormProps) {
@@ -43,19 +44,40 @@ export function FormulaForm({
     const [expression, setExpression] = useState(initialFormula?.expression ?? '');
     const [isVisible, setIsVisible] = useState(initialFormula?.is_visible ?? true);
 
+    // Otras fórmulas del servicio (excluyendo la que estamos editando si es edición)
+    const otherFormulas = allFormulas.filter((f) => !initialFormula || f.id !== initialFormula.id);
+    const otherFormulaCodes = otherFormulas.map((f) => f.code).filter(Boolean);
+
+    // Fórmulas que usan directamente este código en su expresión
+    const disabledFormulaCodes = !code.trim()
+        ? []
+        : otherFormulas
+            .filter((of) => of.code && new RegExp(`\\b${code}\\b`, 'i').test(of.expression))
+            .map((of) => of.code);
+
+    // Para detectar si la expresión actual cierra un ciclo, el conjunto total de fórmulas
+    // del servicio debe incluir la fórmula que estamos editando en tiempo real
+    const currentEditingFormula = {
+        id: initialFormula?.id ?? 'temp',
+        code: code.trim(),
+        expression: expression.trim(),
+    };
+    const allServiceFormulas = [currentEditingFormula, ...otherFormulas];
+
+    const circularError = (!code.trim() || !expression.trim())
+        ? undefined
+        : resolveFormulaDependencies(currentEditingFormula, allServiceFormulas).circularError;
+
     // Todas las variables posibles que pueden intervenir en la expresión
-    const allAvailableIdentifiers = useMemo(() => {
-        return Array.from(new Set([...availableVariableNames, ...previousFormulaCodes]));
-    }, [availableVariableNames, previousFormulaCodes]);
+    const allAvailableIdentifiers = Array.from(new Set([...availableVariableNames, ...otherFormulaCodes]));
 
     // Detección automática en tiempo real de variables presentes en la expresión
-    const detectedVariables = useMemo(() => {
-        if (!expression.trim()) return [];
-        return allAvailableIdentifiers.filter((varName) => {
+    const detectedVariables = !expression.trim()
+        ? []
+        : allAvailableIdentifiers.filter((varName) => {
             const regex = new RegExp(`\\b${varName}\\b|\\{${varName}\\}`, 'i');
             return regex.test(expression);
         });
-    }, [expression, allAvailableIdentifiers]);
 
     // Al tipear el nombre, auto-sugerir el código/variable en snake_case si no fue personalizado
     const handleNameChange = (val: string) => {
@@ -169,6 +191,11 @@ export function FormulaForm({
             <Form
                 key={isEditing ? `edit-formula-${initialFormula?.id}` : 'create-formula'}
                 {...formAction}
+                onSubmit={(e) => {
+                    if (circularError) {
+                        e.preventDefault();
+                    }
+                }}
                 onSuccess={() => onSuccess()}
                 className="space-y-3.5"
             >
@@ -269,6 +296,14 @@ export function FormulaForm({
                                 required
                             />
                             <InputError message={errors.expression} className="mt-1 text-[11px]" />
+                            {circularError && (
+                                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive space-y-0.5 mt-1.5">
+                                    <span className="font-bold flex items-center gap-1">
+                                        ⚠️ Dependencia circular detectada:
+                                    </span>
+                                    <p className="text-[11px] opacity-90 font-mono">{circularError}</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Variables detectadas serializadas para el backend */}
@@ -284,7 +319,8 @@ export function FormulaForm({
                         {/* Asistente Modular de Inserción Rápida con soporte a Fórmulas Previas */}
                         <FormulaAssistant
                             availableVariableNames={availableVariableNames}
-                            previousFormulaCodes={previousFormulaCodes}
+                            otherFormulaCodes={otherFormulaCodes}
+                            disabledFormulaCodes={disabledFormulaCodes}
                             detectedVariables={detectedVariables}
                             onInsertVariable={handleInsertVariable}
                             onInsertOperator={handleInsertOperator}
@@ -308,7 +344,7 @@ export function FormulaForm({
                             <Button
                                 type="submit"
                                 size="sm"
-                                disabled={processing || !name.trim() || !code.trim() || !expression.trim()}
+                                disabled={processing || Boolean(circularError) || !name.trim() || !code.trim() || !expression.trim()}
                                 className="bg-secondary-600 hover:bg-secondary-700 text-white font-semibold text-xs h-8 cursor-pointer"
                             >
                                 {processing
