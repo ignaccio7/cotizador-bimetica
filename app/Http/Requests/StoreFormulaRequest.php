@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesFormulaCycles;
 use App\Models\Service;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreFormulaRequest extends FormRequest
 {
+    use ValidatesFormulaCycles;
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -40,6 +43,16 @@ class StoreFormulaRequest extends FormRequest
             'variable_names' => ['nullable', 'array'],
             'variable_names.*' => ['string'],
         ];
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $this->validateFormulaCycles($validator);
+        });
     }
 
     /**
