@@ -15,6 +15,8 @@ Este documento contiene las reglas obligatorias para cualquier agente (Antigravi
 3. **NO usar `$guarded`**: Todo modelo Eloquent usa obligatoriamente `$fillable`.
 4. **NO harcodear URLs**: NUNCA escribir strings como `'/api/...'` o `post('/login')` en React. Toda ruta se importa de `@/routes/*`.
 5. **NO instalar paquetes adicionales**: Prohibido agregar WebSockets, Queues complejas ni Redis.
+6. **NO quemar constantes rígidas para datos dinámicos**: Si una tabla o entidad almacena datos dinámicamente (`parameters`, etc.), no asumir ni hardcodear constantes o listas estáticas en PHP/TS que limiten su crecimiento.
+7. **NO hacer dobles validaciones**: Si la base de datos o el `FormRequest` ya garantiza la integridad, no meter validaciones defensivas redundantes en frontend ni backend.
 
 ## 3. Idioma y Nomenclatura
 - **Backend (PHP / BD)**: **Estrictamente en Inglés**.
@@ -39,7 +41,12 @@ Este documento contiene las reglas obligatorias para cualquier agente (Antigravi
    - **Contrato (`contracts`)**: Generación del documento final mediante plantilla (`contract_templates`) y placeholders.
    - *Nota*: Ambas se desprenden del Formulario Inicial y pueden generarse en cualquier orden, sin depender una de la otra.
 
-## 6. Referencia de Conocimiento
+## 6. Estilo de Asistencia y Desarrollo
+1. **Explicaciones Didácticas y con Ejemplos**: Cada avance o concepto técnico debe explicarse con claridad: qué hace, qué entra, qué sale, alternativas y ejemplos reales.
+2. **Simplicidad y Código Limpio (KISS)**: Evitar sobreingeniería. Implementar únicamente lo contemplado en el plan sin inflar archivos con lógica innecesaria.
+3. **Flujo de Trabajo Ligero en Dev**: No ejecutar builds pesados (`npm run build`) ni tests excesivos a menos que se solicite; priorizar sintaxis rápida (`php -l`) y validación directa en entorno de desarrollo.
+
+## 7. Referencia de Conocimiento
 - Para reglas de negocio completas, fórmulas y diccionario de tablas: Consultar [CONTEXT.md](CONTEXT.md).
 - Para motor de fórmulas e identidad: Consultar `.agents/skills/bimetica-core/SKILL.md`.
 - Para generar CRUDs y componentes: Consultar `.agents/skills/antigravity-crud/SKILL.md`.

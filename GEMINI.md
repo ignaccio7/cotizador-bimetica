@@ -8,6 +8,8 @@ Documento de contexto maestro para Gemini CLI.
 - **Enrutamiento**: Laravel Wayfinder (`@/routes/*`). Prohibido escribir URLs manuales.
 - **Formularios**: Componente `<Form {...action.form()}>` de Wayfinder. Prohibido instalar o usar Zod / React Hook Form.
 - **Modelos Eloquent**: Obligatorio `$fillable`. Prohibido `$guarded`.
+- **Datos Dinámicos**: Prohibido quemar o asumir constantes rígidas (`const GROUPS`) si la base de datos es la fuente dinámica de verdad.
+- **Integridad**: Prohibido hacer dobles validaciones o código defensivo redundante si las reglas de validación o la BD ya garantizan el estado.
 
 ## Idioma
 - Backend (clases, tablas, métodos, migraciones): **Inglés**.
@@ -30,6 +32,11 @@ Documento de contexto maestro para Gemini CLI.
 ## Identidad Visual Corporativa
 - Primary: `#003e65` | Secondary: `#fbad03` | Tertiary: `#2684a8`.
 - Sidebar: Navy `#071526`, icono `DraftingCompass`, módulo comercial destacado en dorado `COMERCIAL & VENTAS`.
+
+## Estilo de Desarrollo y Asistencia
+- **Explicación con Ejemplos**: Explicar siempre el funcionamiento interno, qué entra, qué sale y alternativas con ejemplos didácticos claros.
+- **Simplicidad Estricta**: No asumir requerimientos no contemplados ni inflar archivos con lógica innecesaria.
+- **Flujo Ligero en Dev**: No correr builds completos (`npm run build`) ni suites pesadas salvo solicitud expresa; validar con sintaxis rápida (`php -l`) y confirmar en desarrollo en vivo.
 
 ## Referencia de Conocimiento
 - Para reglas de negocio y cálculo exhaustivo: Ver [CONTEXT.md](CONTEXT.md).

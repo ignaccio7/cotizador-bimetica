@@ -1,4 +1,4 @@
-import { Calculator, LayoutGrid, Sliders } from 'lucide-react';
+import { Calculator, LayoutGrid, Sliders, SlidersHorizontal } from 'lucide-react';
 import { BimeticaBrandHeader } from '@/components/bimetica-brand-header';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -9,6 +9,7 @@ import {
     SidebarHeader,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import parameters from '@/routes/parameters';
 import services from '@/routes/services';
 import variables from '@/routes/variables';
 import type { NavItem } from '@/types';
@@ -28,6 +29,11 @@ const mainNavItems: NavItem[] = [
         title: 'Variables del Sistema',
         href: variables.index(),
         icon: Sliders,
+    },
+    {
+        title: 'Parámetros Globales',
+        href: parameters.index(),
+        icon: SlidersHorizontal,
     },
 ];
 
