@@ -7,7 +7,7 @@ import formulasRoute from '@/routes/services/formulas';
 import { FormulaForm } from './formulas/formula-form';
 import { FormulaCard } from './formulas/formula-item';
 import { FormulaSandboxModal } from './formulas/formula-sandbox-modal';
-import type { FormulaItem } from './formulas/formula-types';
+import type { FormulaItem, ParameterItem } from './formulas/formula-types';
 
 export type { FormulaItem };
 
@@ -16,6 +16,7 @@ interface FormulaListProps {
     formulas?: FormulaItem[];
     serviceName?: string;
     availableVariableNames?: string[];
+    parameters?: ParameterItem[];
 }
 
 export function FormulaList({
@@ -23,6 +24,7 @@ export function FormulaList({
     formulas = [],
     serviceName = 'Servicio',
     availableVariableNames = ['m2', 'pozos', 'complejidad', 'cambiodolar'],
+    parameters = [],
 }: FormulaListProps) {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingFormula, setEditingFormula] = useState<FormulaItem | null>(null);
@@ -95,6 +97,7 @@ export function FormulaList({
                         initialFormula={editingFormula}
                         availableVariableNames={availableVariableNames}
                         allFormulas={formulas}
+                        parameters={parameters}
                         onSuccess={handleCancelForm}
                         onCancel={handleCancelForm}
                     />
@@ -124,6 +127,7 @@ export function FormulaList({
                 <FormulaSandboxModal
                     formula={testingFormula}
                     allFormulas={formulas}
+                    parameters={parameters}
                     open={Boolean(testingFormula)}
                     onOpenChange={(open) => !open && setTestingFormula(null)}
                 />

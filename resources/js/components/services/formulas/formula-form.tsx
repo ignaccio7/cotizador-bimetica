@@ -8,13 +8,14 @@ import { Label } from '@/components/ui/label';
 import formulasRoute from '@/routes/services/formulas';
 import { FormulaAssistant } from './formula-assistant';
 import { resolveFormulaDependencies } from '@/lib/formula-validator';
-import { FormulaItem } from './formula-types';
+import { FormulaItem, ParameterItem } from './formula-types';
 
 interface FormulaFormProps {
     serviceId: number;
     initialFormula?: FormulaItem | null;
     availableVariableNames?: string[];
     allFormulas?: FormulaItem[];
+    parameters?: ParameterItem[];
     onSuccess: () => void;
     onCancel: () => void;
 }
@@ -33,6 +34,7 @@ export function FormulaForm({
     initialFormula = null,
     availableVariableNames = ['m2', 'pozos', 'complejidad', 'cambiodolar'],
     allFormulas = [],
+    parameters = [],
     onSuccess,
     onCancel,
 }: FormulaFormProps) {
@@ -68,8 +70,16 @@ export function FormulaForm({
         ? undefined
         : resolveFormulaDependencies(currentEditingFormula, allServiceFormulas).circularError;
 
-    // Todas las variables posibles que pueden intervenir en la expresión
-    const allAvailableIdentifiers = Array.from(new Set([...availableVariableNames, ...otherFormulaCodes]));
+    // Extraer grupos únicos de parámetros dinámicos recibidos de la base de datos
+    const parameterGroups = Array.from(
+        new Map(parameters.map((p) => [p.group, { group: p.group, group_label: p.group_label }])).values()
+    );
+    const parameterGroupNames = parameterGroups.map((pg) => pg.group);
+
+    // Todas las variables y parámetros posibles que pueden intervenir en la expresión
+    const allAvailableIdentifiers = Array.from(
+        new Set([...availableVariableNames, ...otherFormulaCodes, ...parameterGroupNames])
+    );
 
     // Detección automática en tiempo real de variables presentes en la expresión
     const detectedVariables = !expression.trim()
@@ -253,11 +263,10 @@ export function FormulaForm({
                                     <button
                                         type="button"
                                         onClick={() => setIsVisible(!isVisible)}
-                                        className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors cursor-pointer ${
-                                            isVisible
+                                        className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors cursor-pointer ${isVisible
                                                 ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 font-bold'
                                                 : 'border-border bg-background text-muted-foreground'
-                                        }`}
+                                            }`}
                                     >
                                         {isVisible ? (
                                             <>
@@ -316,11 +325,12 @@ export function FormulaForm({
                             />
                         ))}
 
-                        {/* Asistente Modular de Inserción Rápida con soporte a Fórmulas Previas */}
+                        {/* Asistente Modular de Inserción Rápida con soporte a Fórmulas Previas y Parámetros */}
                         <FormulaAssistant
                             availableVariableNames={availableVariableNames}
                             otherFormulaCodes={otherFormulaCodes}
                             disabledFormulaCodes={disabledFormulaCodes}
+                            parameterGroups={parameterGroups}
                             detectedVariables={detectedVariables}
                             onInsertVariable={handleInsertVariable}
                             onInsertOperator={handleInsertOperator}
@@ -350,8 +360,8 @@ export function FormulaForm({
                                 {processing
                                     ? 'Guardando...'
                                     : isEditing
-                                    ? 'Guardar Cambios'
-                                    : 'Guardar Fórmula'}
+                                        ? 'Guardar Cambios'
+                                        : 'Guardar Fórmula'}
                             </Button>
                         </div>
                     </>

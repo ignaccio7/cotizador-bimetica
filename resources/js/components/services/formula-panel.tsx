@@ -1,13 +1,19 @@
 import { FormulaList } from '@/components/services/formula-list';
+import type { ParameterItem } from '@/components/services/formulas/formula-types';
 import type { ServiceItem } from '@/components/services/services-list';
 import { MOCK_VARIABLES } from '@/components/services/variable-list';
 
 interface FormulaPanelProps {
     selectedService: ServiceItem | null;
     availableVariables?: string[];
+    parameters?: ParameterItem[];
 }
 
-export function FormulaPanel({ selectedService, availableVariables = [] }: FormulaPanelProps) {
+export function FormulaPanel({
+    selectedService,
+    availableVariables = [],
+    parameters = [],
+}: FormulaPanelProps) {
     if (!selectedService) {
         return (
             <div className="rounded-xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
@@ -30,6 +36,7 @@ export function FormulaPanel({ selectedService, availableVariables = [] }: Formu
                 serviceName={selectedService.name}
                 formulas={selectedService.formulas ?? []}
                 availableVariableNames={availableVariableNames}
+                parameters={parameters}
             />
         </div>
     );

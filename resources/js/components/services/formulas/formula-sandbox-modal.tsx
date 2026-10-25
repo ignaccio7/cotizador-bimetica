@@ -1,4 +1,4 @@
-import { Calculator, RotateCcw, Sparkles, Variable as VariableIcon } from 'lucide-react';
+import { Calculator, RotateCcw, SlidersHorizontal, Sparkles, Variable as VariableIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { evaluateFormulaChain } from '@/lib/formula-engine';
 import { resolveFormulaDependencies } from '@/lib/formula-validator';
@@ -14,11 +14,12 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { FormulaItem, VariableItem } from './formula-types';
+import type { FormulaItem, ParameterItem, VariableItem } from './formula-types';
 
 interface FormulaSandboxModalProps {
     formula: FormulaItem | null;
     allFormulas?: FormulaItem[];
+    parameters?: ParameterItem[];
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
@@ -26,6 +27,7 @@ interface FormulaSandboxModalProps {
 export function FormulaSandboxModal({
     formula,
     allFormulas = [],
+    parameters = [],
     open,
     onOpenChange,
 }: FormulaSandboxModalProps) {
@@ -33,9 +35,6 @@ export function FormulaSandboxModal({
 
     // 1. Resolver el árbol completo de dependencias y detectar ciclos en cualquier nivel
     const { orderedFormulas, circularError } = resolveFormulaDependencies(formula, allFormulas);
-
-    console.log('orderedFormulas', orderedFormulas);
-
 
     // 2. Obtener variables de BD (de la fórmula actual y de todas las que necesita en la cadena)
     const allVariablesList: VariableItem[] = [
@@ -66,9 +65,17 @@ export function FormulaSandboxModal({
         }
     });
 
+    // 5. Detectar grupos de parámetros referenciados en toda la cadena de expresiones
+    const allExpressions = [formula.expression, ...orderedFormulas.map((f) => f.expression)].join(' ');
+    const availableGroups = Array.from(new Set(parameters.map((p) => p.group)));
+    const detectedGroups = availableGroups.filter((groupName) => {
+        const regex = new RegExp(`\\b${groupName}\\b|\\{${groupName}\\}`, 'i');
+        return regex.test(allExpressions);
+    });
+
     const [values, setValues] = useState<Record<string, number | string>>({});
 
-    // Inicializar: variables dinámicas en 0, y constantes fijas con su valor de BD
+    // Inicializar: variables dinámicas en 0, constantes fijas de BD, y parámetros con la primera opción del grupo
     useEffect(() => {
         if (open && formula) {
             const initial: Record<string, number> = {};
@@ -77,6 +84,10 @@ export function FormulaSandboxModal({
             });
             staticVariables.forEach((s) => {
                 initial[s.name] = s.value;
+            });
+            detectedGroups.forEach((groupName) => {
+                const firstOption = parameters.find((p) => p.group === groupName);
+                initial[groupName] = firstOption ? Number(firstOption.value) : 0;
             });
             setValues(initial);
         }
@@ -89,6 +100,13 @@ export function FormulaSandboxModal({
         }));
     };
 
+    const handleParameterChange = (groupName: string, selectedValue: string) => {
+        setValues((prev) => ({
+            ...prev,
+            [groupName]: Number(selectedValue) || 0,
+        }));
+    };
+
     const handleReset = () => {
         const initial: Record<string, number> = {};
         dynamicVariables.forEach((v) => {
@@ -96,6 +114,10 @@ export function FormulaSandboxModal({
         });
         staticVariables.forEach((s) => {
             initial[s.name] = s.value;
+        });
+        detectedGroups.forEach((groupName) => {
+            const firstOption = parameters.find((p) => p.group === groupName);
+            initial[groupName] = firstOption ? Number(firstOption.value) : 0;
         });
         setValues(initial);
     };
@@ -237,6 +259,62 @@ export function FormulaSandboxModal({
                                     </div>
                                 )}
 
+                                {/* Parámetros del Sistema detectados (selectores con opciones reales de BD) */}
+                                {detectedGroups.length > 0 && (
+                                    <div className="space-y-2 pt-1 border-t border-border/60">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-semibold text-tertiary-800 dark:text-tertiary-200 flex items-center gap-1.5">
+                                                <SlidersHorizontal className="size-3.5 text-tertiary" />
+                                                Parámetros de prueba
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground">
+                                                Valores de base de datos
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {detectedGroups.map((groupName) => {
+                                                const groupOptions = parameters.filter((p) => p.group === groupName);
+                                                const firstOption = groupOptions[0];
+                                                const groupLabel = firstOption?.group_label || groupName;
+                                                const currentValue = values[groupName] ?? (firstOption ? Number(firstOption.value) : 0);
+
+                                                return (
+                                                    <div
+                                                        key={groupName}
+                                                        className="rounded-md border border-tertiary/30 bg-tertiary-50/20 dark:bg-tertiary-950/20 p-2 space-y-1.5"
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <Label
+                                                                htmlFor={`param-select-${groupName}`}
+                                                                className="text-[11px] font-mono font-bold text-tertiary flex items-center gap-1 cursor-pointer"
+                                                            >
+                                                                ${groupName}
+                                                            </Label>
+                                                            <span className="text-[10px] text-muted-foreground">
+                                                                {groupLabel}
+                                                            </span>
+                                                        </div>
+
+                                                        <select
+                                                            id={`param-select-${groupName}`}
+                                                            value={String(currentValue)}
+                                                            onChange={(e) => handleParameterChange(groupName, e.target.value)}
+                                                            className="w-full h-8 text-xs font-medium rounded-md border border-input bg-background px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-tertiary cursor-pointer font-mono"
+                                                        >
+                                                            {groupOptions.map((opt) => (
+                                                                <option key={opt.id} value={String(opt.value)}>
+                                                                    {opt.name} ({opt.type === 'percentage' ? `${opt.value}%` : opt.value})
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Fórmulas calculadas de las que depende (en orden secuencial de cálculo) */}
                                 {orderedFormulas.length > 0 && (
                                     <div className="space-y-1.5 pt-1">
@@ -324,6 +402,14 @@ export function FormulaSandboxModal({
                                             className="bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20 text-[10px]"
                                         >
                                             {sv.name} = {sv.value}
+                                        </span>
+                                    ))}
+                                    {detectedGroups.map((groupName) => (
+                                        <span
+                                            key={groupName}
+                                            className="bg-tertiary/10 text-tertiary-800 dark:text-tertiary-200 px-1.5 py-0.5 rounded border border-tertiary/30 text-[10px]"
+                                        >
+                                            {groupName} = <strong>{values[groupName] !== undefined ? String(values[groupName]) : '0'}</strong>
                                         </span>
                                     ))}
                                     {orderedFormulas.map((of) => (

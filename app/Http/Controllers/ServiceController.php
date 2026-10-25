@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
+use App\Models\Parameter;
 use App\Models\Service;
 use App\Models\Variable;
 use Illuminate\Http\RedirectResponse;
@@ -51,9 +52,15 @@ class ServiceController extends Controller
 
         $availableVariables = Variable::orderBy('name', 'asc')->pluck('name')->values()->all();
 
+        $parameters = Parameter::active()
+            ->orderBy('group', 'asc')
+            ->orderBy('name', 'asc')
+            ->get(['id', 'group', 'group_label', 'name', 'type', 'value']);
+
         return Inertia::render('services/index', [
             'services' => $services,
             'availableVariables' => $availableVariables,
+            'parameters' => $parameters,
         ]);
     }
 

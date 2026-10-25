@@ -10,6 +10,7 @@ import {
 } from '@/components/services/services-list';
 import { Button } from '@/components/ui/button';
 import servicesRoute from '@/routes/services';
+import type { ParameterItem } from '@/components/services/formulas/formula-types';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -22,11 +23,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Props {
     services?: ServiceItem[];
     availableVariables?: string[];
+    parameters?: ParameterItem[];
 }
 
 export default function ServicesIndex({
     services = [],
     availableVariables = [],
+    parameters = [],
 }: Props) {
     const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
 
@@ -159,11 +162,10 @@ export default function ServicesIndex({
                                     <button
                                         type="button"
                                         onClick={() => setActiveTab('scope')}
-                                        className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
-                                            activeTab === 'scope'
+                                        className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${activeTab === 'scope'
                                                 ? 'bg-primary text-primary-foreground shadow-xs'
                                                 : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-                                        }`}
+                                            }`}
                                     >
                                         <FileText className="size-3.5" />
                                         Alcance y Entregables
@@ -172,11 +174,10 @@ export default function ServicesIndex({
                                     <button
                                         type="button"
                                         onClick={() => setActiveTab('formulas')}
-                                        className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
-                                            activeTab === 'formulas'
+                                        className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${activeTab === 'formulas'
                                                 ? 'bg-primary text-primary-foreground shadow-xs'
                                                 : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-                                        }`}
+                                            }`}
                                     >
                                         <Calculator className="size-3.5" />
                                         Fórmulas & Variables
@@ -188,13 +189,14 @@ export default function ServicesIndex({
                                     <ServiceForm
                                         selectedService={selectedService}
                                         isCreating={false}
-                                        onCancelCreate={() => {}}
+                                        onCancelCreate={() => { }}
                                         onSuccessCreate={handleSuccessCreate}
                                     />
                                 ) : (
                                     <FormulaPanel
                                         selectedService={selectedService}
                                         availableVariables={availableVariables}
+                                        parameters={parameters}
                                     />
                                 )}
                             </div>

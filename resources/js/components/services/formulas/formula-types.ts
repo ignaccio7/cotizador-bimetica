@@ -16,3 +16,13 @@ export interface FormulaItem {
     variable_names: string[];
     variables?: VariableItem[];
 }
+
+export interface ParameterItem {
+    id: number;
+    group: string;
+    group_label?: string | null;
+    name: string;
+    type: 'number' | 'percentage';
+    value: string | number;
+}
+

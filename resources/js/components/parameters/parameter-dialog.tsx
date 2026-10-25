@@ -150,13 +150,13 @@ export function ParameterDialog({
                                         <Input
                                             id="custom-group"
                                             value={customGroup}
-                                            onChange={(e) => setCustomGroup(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                                            onChange={(e) => setCustomGroup(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                                             placeholder="ej. modalidad_pago"
                                             className="font-mono text-xs mt-1"
                                             required
                                         />
                                         <span className="text-[10px] text-muted-foreground">
-                                            En minúsculas con guión bajo.
+                                            Solo letras minúsculas, números y guión bajo (snake_case).
                                         </span>
                                     </div>
                                     <div>

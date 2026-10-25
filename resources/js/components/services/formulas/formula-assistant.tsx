@@ -1,9 +1,15 @@
-import { Calculator, Check, Info, Layers, Plus, Sparkles } from 'lucide-react';
+import { Calculator, Check, Info, Layers, Plus, SlidersHorizontal, Sparkles } from 'lucide-react';
+
+export interface ParameterGroupItem {
+    group: string;
+    group_label?: string | null;
+}
 
 interface FormulaAssistantProps {
     availableVariableNames: string[];
     otherFormulaCodes?: string[];
     disabledFormulaCodes?: string[];
+    parameterGroups?: ParameterGroupItem[];
     detectedVariables: string[];
     onInsertVariable: (varName: string) => void;
     onInsertOperator: (op: string) => void;
@@ -16,6 +22,7 @@ export function FormulaAssistant({
     availableVariableNames,
     otherFormulaCodes = [],
     disabledFormulaCodes = [],
+    parameterGroups = [],
     detectedVariables,
     onInsertVariable,
     onInsertOperator,
@@ -48,11 +55,10 @@ export function FormulaAssistant({
                                 key={varName}
                                 type="button"
                                 onClick={() => onInsertVariable(varName)}
-                                className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono font-medium border transition-colors cursor-pointer ${
-                                    isUsed
+                                className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono font-medium border transition-colors cursor-pointer ${isUsed
                                         ? 'bg-primary text-primary-foreground border-primary font-bold shadow-2xs'
                                         : 'bg-muted/40 hover:bg-muted text-foreground border-border hover:border-primary/40'
-                                }`}
+                                    }`}
                                 title={`Insertar variable ${varName}`}
                             >
                                 <Plus className="size-3 text-muted-foreground" />
@@ -88,13 +94,12 @@ export function FormulaAssistant({
                                     type="button"
                                     disabled={isCircular}
                                     onClick={() => onInsertVariable(code)}
-                                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono font-medium border transition-colors ${
-                                        isCircular
+                                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono font-medium border transition-colors ${isCircular
                                             ? 'opacity-40 cursor-not-allowed bg-muted text-muted-foreground border-dashed border-border'
                                             : isUsed
-                                            ? 'bg-secondary-600 text-white border-secondary-600 font-bold shadow-2xs cursor-pointer'
-                                            : 'bg-secondary-500/10 hover:bg-secondary-500/20 text-secondary-900 dark:text-secondary-100 border-secondary-400/40 hover:border-secondary-500 cursor-pointer'
-                                    }`}
+                                                ? 'bg-secondary-600 text-white border-secondary-600 font-bold shadow-2xs cursor-pointer'
+                                                : 'bg-secondary-500/10 hover:bg-secondary-500/20 text-secondary-900 dark:text-secondary-100 border-secondary-400/40 hover:border-secondary-500 cursor-pointer'
+                                        }`}
                                     title={
                                         isCircular
                                             ? `Bloqueado: "${code}" ya depende de esta fórmula (causaría dependencia circular)`
@@ -111,7 +116,54 @@ export function FormulaAssistant({
                 </div>
             )}
 
-            {/* 3. Operadores Matemáticos y Comparaciones */}
+            {/* 3. Parámetros Globales del Sistema (Factores y Viáticos de BD) */}
+            {parameterGroups.length > 0 && (
+                <div className="space-y-1.5 pt-2 border-t border-border/60">
+                    <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold text-tertiary-800 dark:text-tertiary-200 flex items-center gap-1">
+                            <SlidersHorizontal className="size-3.5 text-tertiary" />
+                            Parámetros del Sistema:
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                            Inserta parametros definidos en el sistema
+                        </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                        {parameterGroups.map((pg) => {
+                            const isUsed = detectedVariables.includes(pg.group);
+
+                            return (
+                                <button
+                                    key={pg.group}
+                                    type="button"
+                                    onClick={() => onInsertVariable(pg.group)}
+                                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono font-medium border transition-colors cursor-pointer ${isUsed
+                                            ? 'bg-tertiary text-white border-tertiary font-bold shadow-2xs'
+                                            : 'bg-tertiary/10 hover:bg-tertiary/20 text-tertiary-900 dark:text-tertiary-100 border-tertiary/30 hover:border-tertiary/50'
+                                        }`}
+                                    title={
+                                        pg.group_label
+                                            ? `Insertar parámetro ${pg.group} (${pg.group_label})`
+                                            : `Insertar parámetro ${pg.group}`
+                                    }
+                                >
+                                    <Plus className="size-3 text-tertiary" />
+                                    <span>{pg.group}</span>
+                                    {pg.group_label && (
+                                        <span className="text-[10px] opacity-75 font-sans font-normal ml-0.5">
+                                            ({pg.group_label})
+                                        </span>
+                                    )}
+                                    {isUsed && <Check className="size-3 ml-0.5" />}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* 4. Operadores Matemáticos y Comparaciones */}
             <div className="space-y-1.5 pt-2 border-t border-border/60">
                 <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
                     <Calculator className="size-3 text-primary" />
