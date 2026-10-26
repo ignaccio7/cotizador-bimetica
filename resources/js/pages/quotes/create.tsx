@@ -1,22 +1,21 @@
 import { Head } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, Layers, Plus } from 'lucide-react';
-import { useState } from 'react';
-import { QuoteClientCard, type ClientData } from '@/components/quotes/quote-client-card';
+import { ChevronDown, ChevronUp, Layers, Plus, Printer } from 'lucide-react';
+import { useEffect } from 'react';
+import { QuoteClientCard } from '@/components/quotes/quote-client-card';
 import {
     QuoteFloorTable,
-    createFloorName,
-    getFloorDefaultDescription,
-    insertFloorInOrder,
     type FloorGroupItem,
-    type FloorItem,
 } from '@/components/quotes/quote-floor-table';
 import { QuoteHeader } from '@/components/quotes/quote-header';
+import { QuoteServiceSheetBlock } from '@/components/quotes/quote-service-sheet-block';
 import {
     QuoteServicesSelector,
     DEFAULT_SERVICES,
-    type ServiceItem,
 } from '@/components/quotes/quote-services-selector';
+import { QuotePrintSheet } from '@/components/quotes/quote-print-sheet';
+import { QuoteSheetFooter } from '@/components/quotes/quote-sheet-footer';
 import quotesRoute from '@/routes/quotes';
+import { useQuoteStore } from '@/stores/use-quote-store';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -37,45 +36,34 @@ interface QuoteCreateProps {
 export default function QuoteCreate({ nextQuoteCode = 'COT-2026-001' }: QuoteCreateProps) {
     const quoteCode = nextQuoteCode || 'COT-2026-001';
 
-    // Ficha del cliente editable directamente por el vendedor
-    const [clientData, setClientData] = useState<ClientData>({
-        fullName: 'JANETH / EUNICE MIRANDA NAVIA',
-        phone: '76734409',
-        ci: '76734409 LP',
-        address: 'BAJO SAN ANTONIO, AV. PRINCIPAL #450',
-    });
+    // ── Estado y Acciones desde Zustand ──
+    const clientData = useQuoteStore((state) => state.clientData);
+    const updateClientField = useQuoteStore((state) => state.updateClientField);
 
-    const handleClientChange = (field: keyof ClientData, value: string) => {
-        setClientData((prev) => ({ ...prev, [field]: value }));
-    };
+    const floorGroups = useQuoteStore((state) => state.floorGroups);
+    const activeGroupId = useQuoteStore((state) => state.activeGroupId);
+    const setActiveGroupId = useQuoteStore((state) => state.setActiveGroupId);
+    const updateTableName = useQuoteStore((state) => state.updateTableName);
+    const addFloorGroup = useQuoteStore((state) => state.addFloorGroup);
+    const deleteFloorGroup = useQuoteStore((state) => state.deleteFloorGroup);
 
-    // Estado multitabla de superficies / plantas (Paso 5.1 & 5.2)
-    const [floorGroups, setFloorGroups] = useState<FloorGroupItem[]>([
-        {
-            id: 'group-1',
-            table_name: 'Tabla 1',
-            assigned_service_ids: [1],
-            floors: [
-                {
-                    id: 'floor-1',
-                    name: 'PLANTA BAJA',
-                    description: 'Acceso peatonal, vehicular y ambientes sociales',
-                    area: '',
-                    isActive: true,
-                },
-            ],
-        },
-    ]);
-    const [activeGroupId, setActiveGroupId] = useState<string>('group-1');
-    const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([1]);
+    const addFloorType = useQuoteStore((state) => state.addFloorType);
+    const toggleFloor = useQuoteStore((state) => state.toggleFloor);
+    const updateFloor = useQuoteStore((state) => state.updateFloor);
+    const removeFloor = useQuoteStore((state) => state.removeFloor);
+    const toggleServiceAssignment = useQuoteStore((state) => state.toggleServiceAssignment);
 
-    const handleToggleService = (serviceId: number) => {
-        setSelectedServiceIds((prev) =>
-            prev.includes(serviceId)
-                ? prev.filter((id) => id !== serviceId)
-                : [...prev, serviceId]
-        );
-    };
+    const selectedServiceIds = useQuoteStore((state) => state.selectedServiceIds);
+    const toggleService = useQuoteStore((state) => state.toggleService);
+    const serviceVariables = useQuoteStore((state) => state.serviceVariables);
+    const setServiceVariable = useQuoteStore((state) => state.setServiceVariable);
+
+    const resetQuoteStore = useQuoteStore((state) => state.resetQuoteStore);
+
+    // Reset del store al montar la página para asegurar ciclo de vida limpio en Inertia
+    useEffect(() => {
+        resetQuoteStore();
+    }, [resetQuoteStore]);
 
     // Servicios activos seleccionados para la cotización
     const activeServices = DEFAULT_SERVICES.filter((s) => selectedServiceIds.includes(s.id));
@@ -89,124 +77,6 @@ export default function QuoteCreate({ nextQuoteCode = 'COT-2026-001' }: QuoteCre
             assigned_service_ids: [1],
             floors: [],
         };
-
-    const handleUpdateTableName = (groupId: string, newName: string) => {
-        setFloorGroups((prev) =>
-            prev.map((g) => (g.id === groupId ? { ...g, table_name: newName } : g))
-        );
-    };
-
-    // Crear nueva tabla garantizando nombre único no repetitivo (Tabla 1, Tabla 2, Tabla 3...)
-    const handleAddFloorGroup = () => {
-        // Encuentra el menor número correlativo que no colisione con nombres existentes
-        let nextNumber = 1;
-        while (
-            floorGroups.some(
-                (g) => g.table_name.trim().toLowerCase() === `tabla ${nextNumber}`
-            )
-        ) {
-            nextNumber++;
-        }
-
-        const newId = `group-${Date.now()}`;
-        const newGroup: FloorGroupItem = {
-            id: newId,
-            table_name: `Tabla ${nextNumber}`,
-            assigned_service_ids: [1],
-            floors: [
-                {
-                    id: 'floor-1',
-                    name: 'PLANTA BAJA',
-                    description: 'Acceso peatonal, vehicular y ambientes sociales',
-                    area: '',
-                    isActive: true,
-                },
-            ],
-        };
-        setFloorGroups((prev) => [...prev, newGroup]);
-        setActiveGroupId(newId);
-    };
-
-    const handleDeleteFloorGroup = (groupId: string) => {
-        setFloorGroups((prev) => {
-            const remaining = prev.filter((g) => g.id !== groupId);
-            if (groupId === activeGroupId && remaining.length > 0) {
-                setActiveGroupId(remaining[0].id);
-            }
-            return remaining;
-        });
-    };
-
-    // Función auxiliar: modifica la tabla activa en la lista maestra en un solo lugar
-    const updateActiveGroup = (
-        modifier: (currentGroup: FloorGroupItem) => FloorGroupItem
-    ) => {
-        setFloorGroups((prev) =>
-            prev.map((g) => (g.id === activeGroupId ? modifier(g) : g))
-        );
-    };
-
-    // Agregar nivel (Planta, Subsuelo o Terraza) con inserción arquitectónica ordenada
-    const handleAddFloorType = (_groupId: string, type: 'planta' | 'subsuelo' | 'terraza') => {
-        updateActiveGroup((group) => {
-            const name = createFloorName(type, group.floors);
-            const description = getFloorDefaultDescription(type, name);
-            const newFloor: FloorItem = {
-                id: `floor-${Date.now()}`,
-                name,
-                description,
-                area: '',
-                isActive: true,
-            };
-
-            return {
-                ...group,
-                floors: insertFloorInOrder(group.floors, newFloor, type),
-            };
-        });
-    };
-
-    // 1. Alternar computabilidad (checkbox) de un nivel
-    const handleToggleFloor = (floorId: string) => {
-        updateActiveGroup((group) => ({
-            ...group,
-            floors: group.floors.map((f) =>
-                f.id === floorId ? { ...f, isActive: !f.isActive } : f
-            ),
-        }));
-    };
-
-    // 2. Modificar un campo (nombre, descripción, m2) de un nivel
-    const handleUpdateFloor = (
-        floorId: string,
-        field: keyof FloorItem,
-        value: string | number | boolean
-    ) => {
-        updateActiveGroup((group) => ({
-            ...group,
-            floors: group.floors.map((f) =>
-                f.id === floorId ? { ...f, [field]: value } : f
-            ),
-        }));
-    };
-
-    // 3. Eliminar un nivel de la tabla activa
-    const handleRemoveFloor = (floorId: string) => {
-        updateActiveGroup((group) => ({
-            ...group,
-            floors: group.floors.filter((f) => f.id !== floorId),
-        }));
-    };
-
-    // 4. Asignar o desasignar servicio que computa esta tabla
-    const handleToggleServiceAssignment = (serviceId: number) => {
-        updateActiveGroup((group) => ({
-            ...group,
-            assigned_service_ids: group.assigned_service_ids.includes(serviceId)
-                ? group.assigned_service_ids.filter((id) => id !== serviceId)
-                : [...group.assigned_service_ids, serviceId],
-        }));
-    };
 
     // Superficie total de la tabla activa
     const activeGroupArea = activeGroup.floors.reduce((sum, f) => {
@@ -231,18 +101,18 @@ export default function QuoteCreate({ nextQuoteCode = 'COT-2026-001' }: QuoteCre
         <>
             <Head title={`Nueva Cotización - ${quoteCode} | BIMETICA`} />
 
-            {/* CONTENIDO PRINCIPAL: 2 COLUMNAS (HOJA DE COTIZACIÓN IZQUIERDA + SIDEBAR DERECHO) */}
-            <main className="w-full flex-1 p-4 md:p-6">
+            {/* CONTENIDO PRINCIPAL: 2 COLUMNAS (HOJA DE COTIZACIÓN IZQUIERDA + SIDEBAR DERECHO) — OCULTO AL IMPRIMIR */}
+            <main className="w-full flex-1 p-4 md:p-6 print:hidden">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
                     {/* COLUMNA IZQUIERDA: HOJA DE COTIZACIÓN ARQUITECTÓNICA (8 COLUMNAS) */}
-                    <div className="order-2 lg:order-1 lg:col-span-8 bg-card rounded-xl shadow-xs border border-border p-6 sm:p-8 space-y-6 print:p-0 print:border-none print:shadow-none">
+                    <div className="order-2 lg:order-1 lg:col-span-8 bg-card rounded-xl shadow-xs border border-border p-6 sm:p-8 space-y-6">
                         {/* Cabecera de la Hoja y Título Central */}
                         <QuoteHeader quoteCode={quoteCode} />
 
                         {/* Ficha del Cliente (4 Cajas Editables) */}
                         <QuoteClientCard
                             clientData={clientData}
-                            onChange={handleClientChange}
+                            onChange={updateClientField}
                         />
 
                         {/* SECCIÓN TABLAS Y SUPERFICIES (PASO 5.1 & 5.2 - PESTAÑAS + TABLA MODULARIZADAS) */}
@@ -251,13 +121,39 @@ export default function QuoteCreate({ nextQuoteCode = 'COT-2026-001' }: QuoteCre
                             activeGroupId={activeGroupId}
                             activeServices={activeServices}
                             onSelectGroup={setActiveGroupId}
-                            onUpdateTableName={handleUpdateTableName}
-                            onDeleteGroup={handleDeleteFloorGroup}
-                            onToggleFloor={handleToggleFloor}
-                            onUpdateFloor={handleUpdateFloor}
-                            onRemoveFloor={handleRemoveFloor}
-                            onToggleServiceAssignment={handleToggleServiceAssignment}
+                            onUpdateTableName={updateTableName}
+                            onDeleteGroup={deleteFloorGroup}
+                            onToggleFloor={(floorId) => toggleFloor(activeGroup.id, floorId)}
+                            onUpdateFloor={(floorId, field, value) =>
+                                updateFloor(activeGroup.id, floorId, field, value)
+                            }
+                            onRemoveFloor={(floorId) => removeFloor(activeGroup.id, floorId)}
+                            onToggleServiceAssignment={(serviceId) =>
+                                toggleServiceAssignment(activeGroup.id, serviceId)
+                            }
                         />
+
+                        {/* SEPARADOR INSTITUCIONAL (PASO 8.1) */}
+                        <div className="text-center text-xs italic text-muted-foreground py-1 font-serif tracking-wide">
+                            La empresa BIMETICA, ofrece sus servicios en:{' '}
+                            {DEFAULT_SERVICES.map((s) => s.name).join(', ')}.
+                        </div>
+
+                        {/* BLOQUES DE SERVICIOS EN HOJA CENTRAL (PASO 8.2 & 8.3) */}
+                        <div className="space-y-4">
+                            {activeServices.map((service) => (
+                                <QuoteServiceSheetBlock
+                                    key={service.id}
+                                    service={service}
+                                    variablesValues={serviceVariables[service.id] || {}}
+                                    onChangeVariable={setServiceVariable}
+                                    onRemoveService={toggleService}
+                                />
+                            ))}
+                        </div>
+
+                        {/* PIE DE COTIZACIÓN INSTITUCIONAL (PASO 8.4) */}
+                        <QuoteSheetFooter />
                     </div>
 
                     {/* COLUMNA DERECHA: MOTOR DE CÁLCULO (4 COLUMNAS - PASO 3.1 & 3.2) */}
@@ -278,7 +174,7 @@ export default function QuoteCreate({ nextQuoteCode = 'COT-2026-001' }: QuoteCre
                                 <QuoteServicesSelector
                                     servicesCatalog={DEFAULT_SERVICES}
                                     selectedServiceIds={selectedServiceIds}
-                                    onToggleService={handleToggleService}
+                                    onToggleService={toggleService}
                                     serviceM2Values={serviceM2Values}
                                 />
                             </div>
@@ -292,7 +188,7 @@ export default function QuoteCreate({ nextQuoteCode = 'COT-2026-001' }: QuoteCre
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={handleAddFloorGroup}
+                                        onClick={addFloorGroup}
                                         className="text-[10px] bg-primary-950 hover:bg-primary-900 text-white px-2 py-1 rounded font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
                                         title="Crear una nueva tabla de superficies independiente"
                                     >
@@ -317,7 +213,7 @@ export default function QuoteCreate({ nextQuoteCode = 'COT-2026-001' }: QuoteCre
                                 <div className="flex items-center gap-1.5 flex-wrap pt-1">
                                     <button
                                         type="button"
-                                        onClick={() => handleAddFloorType(activeGroup.id, 'planta')}
+                                        onClick={() => addFloorType(activeGroup.id, 'planta')}
                                         className="flex-1 min-w-0 text-[11px] bg-secondary text-secondary-foreground hover:bg-amber-400 px-2.5 py-1.5 rounded-md font-bold flex items-center justify-center gap-1 shadow-2xs transition-colors cursor-pointer"
                                         title="Agregar planta a la tabla activa (ej. 01° PLANTA, 02° PLANTA...)"
                                     >
@@ -328,7 +224,7 @@ export default function QuoteCreate({ nextQuoteCode = 'COT-2026-001' }: QuoteCre
 
                                     <button
                                         type="button"
-                                        onClick={() => handleAddFloorType(activeGroup.id, 'subsuelo')}
+                                        onClick={() => addFloorType(activeGroup.id, 'subsuelo')}
                                         className="flex-1 min-w-0 text-[11px] bg-slate-700 text-white hover:bg-slate-600 px-2.5 py-1.5 rounded-md font-bold flex items-center justify-center gap-1 shadow-2xs transition-colors cursor-pointer"
                                         title="Agregar subsuelo a la tabla activa (ej. 01° SUBSUELO...)"
                                     >
@@ -339,7 +235,7 @@ export default function QuoteCreate({ nextQuoteCode = 'COT-2026-001' }: QuoteCre
 
                                     <button
                                         type="button"
-                                        onClick={() => handleAddFloorType(activeGroup.id, 'terraza')}
+                                        onClick={() => addFloorType(activeGroup.id, 'terraza')}
                                         className="w-full text-[11px] bg-[#2684a8] text-white hover:bg-[#1f6b8a] px-2.5 py-1.5 rounded-md font-bold flex items-center justify-center gap-1 shadow-2xs transition-colors cursor-pointer"
                                         title="Agregar terraza a la tabla activa (ej. 01° TERRAZA...)"
                                     >
@@ -348,10 +244,34 @@ export default function QuoteCreate({ nextQuoteCode = 'COT-2026-001' }: QuoteCre
                                     </button>
                                 </div>
                             </div>
+
+                            {/* BOTÓN DE IMPRESIÓN Y EXPORTACIÓN A PDF (PASO 8.5) */}
+                            <div className="border-t border-border pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => window.print()}
+                                    className="w-full bg-[#00253d] hover:bg-[#003e65] text-white font-bold h-10 text-xs rounded-lg shadow-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                                    title="Imprimir cotización o guardar como PDF"
+                                >
+                                    <Printer className="size-4 text-secondary" />
+                                    <span>Imprimir / Guardar como PDF</span>
+                                </button>
+                            </div>
                         </div>
                     </aside>
                 </div>
             </main>
+
+            {/* HOJA DE IMPRESIÓN ESTRICTA: SOLO VISIBLE AL IMPRIMIR (HIDDEN EN PANTALLA) */}
+            <div className="hidden print:block w-full">
+                <QuotePrintSheet
+                    quoteCode={quoteCode}
+                    clientData={clientData}
+                    floorGroups={floorGroups}
+                    activeServices={activeServices}
+                    serviceVariables={serviceVariables}
+                />
+            </div>
         </>
     );
 }

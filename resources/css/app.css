@@ -260,3 +260,51 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* ── CALIBRACIÓN DE IMPRESIÓN Y EXPORTACIÓN A PDF (ESTILO GOOGLE SHEETS) ── */
+@page {
+    size: letter portrait;
+    margin: 0.6cm;
+}
+
+@media print {
+    /* Forzar fondo blanco y colores exactos sin decoloración de tinta */
+    html,
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Ocultar elementos estructurales de la app (sidebar, cabecera de usuario, breadcrumbs) */
+    nav,
+    aside,
+    [data-slot="sidebar"],
+    [data-slot="header"],
+    .print\:hidden {
+        display: none !important;
+    }
+
+    /* Mostrar contenedores de impresión dedicados */
+    .print\:block {
+        display: block !important;
+    }
+
+    /* Hoja central sin paddings ni márgenes de pantalla */
+    main {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        background: transparent !important;
+    }
+
+    /* Evitar que tablas o bloques de servicio se corten entre páginas */
+    .print-break-inside-avoid,
+    .break-inside-avoid {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+}
+

@@ -140,7 +140,7 @@ export function QuoteFloorTable({
     }, 0);
 
     return (
-        <div className="space-y-0">
+        <div className="space-y-0 print-break-inside-avoid">
             {/* Barra de Pestañas (Tabs) aislada en su propio componente */}
             <QuoteFloorTabs
                 groups={groups}
