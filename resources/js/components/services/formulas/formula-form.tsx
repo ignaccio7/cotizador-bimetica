@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import formulasRoute from '@/routes/services/formulas';
 import { FormulaAssistant } from './formula-assistant';
-import { resolveFormulaDependencies } from '@/lib/formula-validator';
+import { isReservedMathKeyword, resolveFormulaDependencies } from '@/lib/formula-validator';
 import { FormulaItem, ParameterItem } from './formula-types';
 
 interface FormulaFormProps {
@@ -76,10 +76,13 @@ export function FormulaForm({
     );
     const parameterGroupNames = parameterGroups.map((pg) => pg.group);
 
-    // Todas las variables y parámetros posibles que pueden intervenir en la expresión
+    // Todas las variables y parámetros posibles que pueden intervenir en la expresión (excluyendo palabras reservadas)
     const allAvailableIdentifiers = Array.from(
         new Set([...availableVariableNames, ...otherFormulaCodes, ...parameterGroupNames])
-    );
+    ).filter((name) => !isReservedMathKeyword(name));
+
+    // Validación de código reservado de Math.js
+    const isReservedCode = Boolean(code.trim() && isReservedMathKeyword(code));
 
     // Detección automática en tiempo real de variables presentes en la expresión
     const detectedVariables = !expression.trim()
@@ -124,8 +127,14 @@ export function FormulaForm({
                 if (op === '-' || op === '(') return op;
                 return '';
             }
+
+            // Operadores lógicos 'and' y 'or' siempre se adjuntan con espaciado
+            if (op === 'and' || op === 'or') {
+                return `${trimmed} ${op} `;
+            }
+
             const lastChar = trimmed.slice(-1);
-            if (['+', '-', '*', '/', '<', '>', '=', '?', ':'].includes(lastChar)) {
+            if (['+', '-', '*', '/'].includes(lastChar)) {
                 return `${trimmed.slice(0, -1)} ${op} `;
             }
             return `${trimmed} ${op} `;
@@ -252,6 +261,11 @@ export function FormulaForm({
                                     required
                                 />
                                 <InputError message={errors.code} className="mt-1 text-[11px]" />
+                                {isReservedCode && (
+                                    <p className="mt-1 text-[11px] text-destructive font-medium">
+                                        "{code}" es una palabra reservada de Math.js y no puede usarse.
+                                    </p>
+                                )}
                             </div>
 
                             {/* Visibilidad en Cotización */}
@@ -354,7 +368,7 @@ export function FormulaForm({
                             <Button
                                 type="submit"
                                 size="sm"
-                                disabled={processing || Boolean(circularError) || !name.trim() || !code.trim() || !expression.trim()}
+                                disabled={processing || Boolean(circularError) || isReservedCode || !name.trim() || !code.trim() || !expression.trim()}
                                 className="bg-secondary-600 hover:bg-secondary-700 text-white font-semibold text-xs h-8 cursor-pointer"
                             >
                                 {processing

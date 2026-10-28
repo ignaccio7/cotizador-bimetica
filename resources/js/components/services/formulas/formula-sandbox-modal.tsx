@@ -51,17 +51,17 @@ export function FormulaSandboxModal({
     });
 
     // 4. Separar en: Dinámicas (inputs de prueba) y Estáticas (constantes de BD)
-    const dynamicVariables: string[] = [];
-    const staticVariables: { name: string; value: number }[] = [];
+    const dynamicVariables: VariableItem[] = [];
+    const staticVariables: { name: string; value: number | string }[] = [];
 
     varMap.forEach((v) => {
         if (v.type === 'static') {
             staticVariables.push({
                 name: v.name,
-                value: Number(v.default_value) || 0,
+                value: v.value_type === 'string' ? (v.default_value ?? '') : Number(v.default_value) || 0,
             });
         } else {
-            dynamicVariables.push(v.name);
+            dynamicVariables.push(v);
         }
     });
 
@@ -73,30 +73,40 @@ export function FormulaSandboxModal({
         return regex.test(allExpressions);
     });
 
-    const [values, setValues] = useState<Record<string, number | string>>({});
+    const getInitialValues = (): Record<string, number | string> => {
+        const initial: Record<string, number | string> = {};
+        dynamicVariables.forEach((v) => {
+            if (v.value_type === 'string') {
+                initial[v.name] = v.default_value ?? (v.options && v.options.length > 0 ? v.options[0] : '');
+            } else {
+                initial[v.name] = Number(v.default_value) || 0;
+            }
+        });
+        staticVariables.forEach((s) => {
+            initial[s.name] = s.value;
+        });
+        detectedGroups.forEach((groupName) => {
+            const firstOption = parameters.find((p) => p.group === groupName);
+            initial[groupName] = firstOption ? Number(firstOption.value) : 0;
+        });
+        return initial;
+    };
 
-    // Inicializar: variables dinámicas en 0, constantes fijas de BD, y parámetros con la primera opción del grupo
+    const [values, setValues] = useState<Record<string, number | string>>(() => getInitialValues());
+
+    // Inicializar: variables dinámicas con su default_value u opción, constantes de BD, y parámetros de prueba
     useEffect(() => {
         if (open && formula) {
-            const initial: Record<string, number> = {};
-            dynamicVariables.forEach((v) => {
-                initial[v] = 0;
-            });
-            staticVariables.forEach((s) => {
-                initial[s.name] = s.value;
-            });
-            detectedGroups.forEach((groupName) => {
-                const firstOption = parameters.find((p) => p.group === groupName);
-                initial[groupName] = firstOption ? Number(firstOption.value) : 0;
-            });
-            setValues(initial);
+            setValues(getInitialValues());
         }
     }, [formula.id, open]);
 
-    const handleVariableChange = (name: string, value: string) => {
+    const handleVariableChange = (varItem: VariableItem, rawValue: string) => {
         setValues((prev) => ({
             ...prev,
-            [name]: value === '' ? '' : Number(value),
+            [varItem.name]: varItem.value_type === 'string'
+                ? rawValue
+                : (rawValue === '' ? '' : Number(rawValue)),
         }));
     };
 
@@ -108,18 +118,7 @@ export function FormulaSandboxModal({
     };
 
     const handleReset = () => {
-        const initial: Record<string, number> = {};
-        dynamicVariables.forEach((v) => {
-            initial[v] = 0;
-        });
-        staticVariables.forEach((s) => {
-            initial[s.name] = s.value;
-        });
-        detectedGroups.forEach((groupName) => {
-            const firstOption = parameters.find((p) => p.group === groupName);
-            initial[groupName] = firstOption ? Number(firstOption.value) : 0;
-        });
-        setValues(initial);
+        setValues(getInitialValues());
     };
 
     // Evaluación en tiempo real con Math.js
@@ -194,7 +193,7 @@ export function FormulaSandboxModal({
                                             className="h-6 text-[11px] text-muted-foreground hover:text-foreground gap-1 px-1.5 cursor-pointer"
                                         >
                                             <RotateCcw className="size-3" />
-                                            Restablecer a 0
+                                            Restablecer valores
                                         </Button>
                                     )}
                                 </div>
@@ -205,33 +204,64 @@ export function FormulaSandboxModal({
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        {dynamicVariables.map((varName) => (
-                                            <div
-                                                key={varName}
-                                                className="rounded-md border border-border/80 bg-background p-2 space-y-1"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <Label
-                                                        htmlFor={`var-input-${varName}`}
-                                                        className="text-[11px] font-mono font-bold text-primary flex items-center gap-1 cursor-pointer"
-                                                    >
-                                                        ${varName}
-                                                    </Label>
-                                                    <span className="text-[10px] text-muted-foreground">
-                                                        valor
-                                                    </span>
+                                        {dynamicVariables.map((v) => {
+                                            const varName = v.name;
+                                            const isString = v.value_type === 'string';
+                                            const hasOptions = Array.isArray(v.options) && v.options.length > 0;
+
+                                            return (
+                                                <div
+                                                    key={varName}
+                                                    className="rounded-md border border-border/80 bg-background p-2 space-y-1"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <Label
+                                                            htmlFor={`var-input-${varName}`}
+                                                            className="text-[11px] font-mono font-bold text-primary flex items-center gap-1 cursor-pointer"
+                                                        >
+                                                            ${varName}
+                                                        </Label>
+                                                        <span className="text-[10px] text-muted-foreground">
+                                                            {isString ? 'opción' : 'valor'}
+                                                        </span>
+                                                    </div>
+
+                                                    {isString && hasOptions ? (
+                                                        <select
+                                                            id={`var-input-${varName}`}
+                                                            value={String(values[varName] ?? v.default_value ?? v.options![0])}
+                                                            onChange={(e) => handleVariableChange(v, e.target.value)}
+                                                            className="w-full h-8 text-xs font-semibold rounded-md border border-input bg-background px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-mono"
+                                                        >
+                                                            {v.options!.map((opt) => (
+                                                                <option key={opt} value={opt}>
+                                                                    {opt}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    ) : isString ? (
+                                                        <Input
+                                                            id={`var-input-${varName}`}
+                                                            type="text"
+                                                            value={String(values[varName] ?? '')}
+                                                            onChange={(e) => handleVariableChange(v, e.target.value)}
+                                                            placeholder={v.default_value ?? ''}
+                                                            className="h-8 text-xs font-mono font-bold"
+                                                        />
+                                                    ) : (
+                                                        <Input
+                                                            id={`var-input-${varName}`}
+                                                            type="number"
+                                                            step="any"
+                                                            value={values[varName] ?? 0}
+                                                            onChange={(e) => handleVariableChange(v, e.target.value)}
+                                                            placeholder="0"
+                                                            className="h-8 text-xs font-mono font-bold"
+                                                        />
+                                                    )}
                                                 </div>
-                                                <Input
-                                                    id={`var-input-${varName}`}
-                                                    type="number"
-                                                    step="any"
-                                                    value={values[varName] ?? 0}
-                                                    onChange={(e) => handleVariableChange(varName, e.target.value)}
-                                                    placeholder="0"
-                                                    className="h-8 text-xs font-mono font-bold"
-                                                />
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
 
@@ -388,12 +418,12 @@ export function FormulaSandboxModal({
 
                                 {/* Resumen de variables */}
                                 <div className="text-[11px] text-muted-foreground flex flex-wrap gap-1.5 items-center justify-center font-mono pt-1 border-t border-border/40">
-                                    {dynamicVariables.map((varName) => (
+                                    {dynamicVariables.map((v) => (
                                         <span
-                                            key={varName}
+                                            key={v.name}
                                             className="bg-muted px-1.5 py-0.5 rounded border border-border/60 text-[10px]"
                                         >
-                                            {varName} = <strong>{values[varName] !== '' ? String(values[varName]) : '0'}</strong>
+                                            {v.name} = <strong>{values[v.name] !== undefined && values[v.name] !== '' ? String(values[v.name]) : '0'}</strong>
                                         </span>
                                     ))}
                                     {staticVariables.map((sv) => (

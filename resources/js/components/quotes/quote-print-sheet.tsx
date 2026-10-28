@@ -47,18 +47,26 @@ function PrintServiceBlock({
     designParameters?: DesignParameters;
 }) {
     const varValues = serviceVariables[service.id] || {};
-    const values: Record<string, number> = {};
+    const values: Record<string, number | string> = {};
 
     service.formulas?.forEach((f) => {
         f.variables?.forEach((v) => {
             if (v.type === 'dynamic') {
                 const userVal = varValues[v.name];
-                values[v.name] =
-                    userVal !== undefined && userVal !== ''
-                        ? Number(userVal) || 0
-                        : Number(v.default_value) || 0;
+                if (v.value_type === 'string') {
+                    values[v.name] = userVal !== undefined && userVal !== ''
+                        ? userVal
+                        : (v.default_value ?? '');
+                } else {
+                    values[v.name] =
+                        userVal !== undefined && userVal !== ''
+                            ? Number(userVal) || 0
+                            : Number(v.default_value) || 0;
+                }
             } else {
-                values[v.name] = Number(v.default_value) || 0;
+                values[v.name] = v.value_type === 'string'
+                    ? (v.default_value ?? '')
+                    : Number(v.default_value) || 0;
             }
         });
     });
@@ -158,14 +166,14 @@ function PrintServiceBlock({
                     {columns.map((col) => {
                         if (col.kind === 'variable') {
                             const v = col.variable;
-                            const val = varValues[v.name] ?? v.default_value ?? '0';
+                            const val = varValues[v.name] ?? v.default_value ?? (v.value_type === 'string' ? '' : '0');
 
                             return (
                                 <div
                                     key={`prt-cell-var-${v.name}`}
                                     className="p-2 flex items-center justify-center font-mono font-bold text-black text-center"
                                 >
-                                    {val || '0'}
+                                    {val || (v.value_type === 'string' ? '-' : '0')}
                                 </div>
                             );
                         }
@@ -193,10 +201,12 @@ function PrintServiceBlock({
                                 className="p-2 flex items-center justify-center font-mono font-bold text-black text-center"
                             >
                                 {evaluation.success
-                                    ? `Bs. ${evaluation.result.toLocaleString('en-US', {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                      })}`
+                                    ? evaluation.isNumeric !== false && typeof evaluation.result === 'number'
+                                          ? `Bs. ${evaluation.result.toLocaleString('en-US', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}`
+                                          : String(evaluation.result)
                                     : 'Bs. —'}
                             </div>
                         );

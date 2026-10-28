@@ -1,7 +1,20 @@
 /**
- * Validador y Resolutor de Dependencias de Fórmulas — Cotizador Bimetica
+ *  * Validador y Resolutor de Dependencias de Fórmulas — Cotizador Bimetica
  * Gestiona el árbol de dependencias y la detección de ciclos circulares.
+
+ * Palabras reservadas de Math.js (operadores lógicos, funciones matemáticas y constantes).
+ * Ninguna fórmula ni variable puede usar estos identificadores para no colisionar con el motor.
  */
+export const MATHJS_RESERVED = [
+    'and', 'or', 'not', 'xor',
+    'true', 'false', 'null', 'undefined',
+    'ceil', 'floor', 'round', 'fix',
+    'mod', 'to', 'in',
+] as const;
+
+export function isReservedMathKeyword(word: string): boolean {
+    return (MATHJS_RESERVED as readonly string[]).includes(word.toLowerCase().trim());
+}
 
 export interface FormulaDependencyItem {
     id: number | string;
@@ -15,6 +28,7 @@ export interface FormulaDependencyItem {
         type: 'static' | 'dynamic';
         value_type: 'integer' | 'decimal' | 'string';
         default_value: string | null;
+        options?: string[] | null;
     }>;
 }
 
@@ -45,7 +59,7 @@ export function resolveFormulaDependencies(
 
         // 2. Buscar qué fórmulas del servicio están escritas en la expresión de 'current'
         const dependencies = allFormulas.filter(
-            (f) => f.id !== current.id && f.code && new RegExp(`\\b${f.code}\\b`, 'i').test(current.expression)
+            (f) => f.id !== current.id && f.code && !isReservedMathKeyword(f.code) && new RegExp(`\\b${f.code}\\b`, 'i').test(current.expression)
         );
 
         // 3. Recorrer cada dependencia pasando la ruta actualizada

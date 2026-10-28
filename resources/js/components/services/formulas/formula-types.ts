@@ -4,6 +4,7 @@ export interface VariableItem {
     type: 'static' | 'dynamic';
     value_type: 'integer' | 'decimal' | 'string';
     default_value: string | null;
+    options?: string[] | null;
 }
 
 export interface FormulaItem {

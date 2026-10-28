@@ -206,6 +206,7 @@ export function FormulaAssistant({
                         { label: '>', title: 'Mayor que', value: '>' },
                         { label: '>=', title: 'Mayor o igual que', value: '>=' },
                         { label: '==', title: 'Igual a', value: '==' },
+                        { label: '!=', title: 'Diferente de', value: '!=' },
                     ].map((comp) => (
                         <button
                             key={comp.label}
@@ -215,6 +216,24 @@ export function FormulaAssistant({
                             title={comp.title}
                         >
                             {comp.label}
+                        </button>
+                    ))}
+
+                    <span className="text-border mx-1 font-light">|</span>
+
+                    {/* Operadores Lógicos */}
+                    {[
+                        { label: 'and', title: 'Y lógico: ambas condiciones deben cumplirse (ej. m2 >= 1 and m2 <= 20)', value: 'and' },
+                        { label: 'or', title: 'O lógico: al menos una condición debe cumplirse', value: 'or' },
+                    ].map((logOp) => (
+                        <button
+                            key={logOp.label}
+                            type="button"
+                            onClick={() => onInsertOperator(logOp.value)}
+                            className="px-2.5 py-1 rounded border border-primary/30 bg-primary/10 hover:bg-primary/20 text-xs font-mono font-bold text-primary transition-colors cursor-pointer"
+                            title={logOp.title}
+                        >
+                            {logOp.label}
                         </button>
                     ))}
                 </div>

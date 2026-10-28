@@ -304,6 +304,7 @@ export default function QuoteCreate({
                     quoteCode={quoteCode}
                     clientData={clientData}
                     designParameters={designParameters}
+                    availableParameters={availableParameters}
                     floorGroups={floorGroups}
                     activeServices={activeServices}
                     serviceVariables={serviceVariables}

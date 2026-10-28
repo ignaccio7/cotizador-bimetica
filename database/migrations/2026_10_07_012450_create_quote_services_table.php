@@ -13,12 +13,11 @@ return new class extends Migration
     {
         Schema::create('quote_services', function (Blueprint $table) {
             $table->id();
-                $table->foreignId('quote_id')->constrained()->cascadeOnDelete();
-                $table->foreignId('service_id')->constrained()->cascadeOnDelete();
-                $table->foreignId('quote_floor_group_id')->nullable()->constrained()->cascadeOnDelete();
-                $table->jsonb('filled_variables')->nullable();
-                $table->decimal('subtotal', 15, 2)->default(0);
-                $table->timestamps();
+            $table->foreignId('quote_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('service_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('quote_floor_group_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->jsonb('filled_variables')->nullable();
+            $table->timestamps();
         });
     }
 

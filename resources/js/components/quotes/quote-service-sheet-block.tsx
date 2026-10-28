@@ -31,18 +31,26 @@ export function QuoteServiceSheetBlock({
     onRemoveService,
 }: QuoteServiceSheetBlockProps) {
     // 1. Construir el scope con los valores de las variables para Math.js
-    const values: Record<string, number> = {};
+    const values: Record<string, number | string> = {};
 
     service.formulas?.forEach((f) => {
         f.variables?.forEach((v) => {
             if (v.type === 'dynamic') {
                 const userVal = variablesValues[v.name];
-                values[v.name] =
-                    userVal !== undefined && userVal !== ''
-                        ? Number(userVal) || 0
-                        : Number(v.default_value) || 0;
+                if (v.value_type === 'string') {
+                    values[v.name] = userVal !== undefined && userVal !== ''
+                        ? userVal
+                        : (v.default_value ?? '');
+                } else {
+                    values[v.name] =
+                        userVal !== undefined && userVal !== ''
+                            ? Number(userVal) || 0
+                            : Number(v.default_value) || 0;
+                }
             } else {
-                values[v.name] = Number(v.default_value) || 0;
+                values[v.name] = v.value_type === 'string'
+                    ? (v.default_value ?? '')
+                    : Number(v.default_value) || 0;
             }
         });
     });
@@ -189,24 +197,52 @@ export function QuoteServiceSheetBlock({
                         {columns.map((col) => {
                             if (col.kind === 'variable') {
                                 const v = col.variable;
-                                const val = variablesValues[v.name] ?? v.default_value ?? '';
+                                const isString = v.value_type === 'string';
+                                const hasOptions = Array.isArray(v.options) && v.options.length > 0;
+                                const val = variablesValues[v.name] ?? v.default_value ?? (hasOptions ? v.options![0] : '');
 
                                 return (
                                     <div
                                         key={`cell-var-${v.name}`}
                                         className="min-w-0 p-3 flex flex-col items-center justify-center font-mono font-bold text-foreground text-center"
                                     >
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="any"
-                                            value={val}
-                                            onChange={(e) =>
-                                                onChangeVariable(service.id, v.name, e.target.value)
-                                            }
-                                            placeholder={v.default_value || '0'}
-                                            className="w-full max-w-[5.5rem] text-center font-mono font-bold text-sm bg-transparent border-b-2 border-dashed border-border hover:border-primary/50 focus:border-primary focus:outline-hidden p-0.5 text-foreground transition-colors"
-                                        />
+                                        {isString && hasOptions ? (
+                                            <select
+                                                value={val}
+                                                onChange={(e) =>
+                                                    onChangeVariable(service.id, v.name, e.target.value)
+                                                }
+                                                className="w-full max-w-[6.5rem] text-center font-mono font-bold text-xs bg-transparent border-b-2 border-dashed border-border hover:border-primary/50 focus:border-primary focus:outline-hidden p-0.5 text-foreground transition-colors cursor-pointer"
+                                            >
+                                                {v.options!.map((opt) => (
+                                                    <option key={opt} value={opt} className="bg-popover text-popover-foreground">
+                                                        {opt}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : isString ? (
+                                            <input
+                                                type="text"
+                                                value={val}
+                                                onChange={(e) =>
+                                                    onChangeVariable(service.id, v.name, e.target.value)
+                                                }
+                                                placeholder={v.default_value || ''}
+                                                className="w-full max-w-[5.5rem] text-center font-mono font-bold text-sm bg-transparent border-b-2 border-dashed border-border hover:border-primary/50 focus:border-primary focus:outline-hidden p-0.5 text-foreground transition-colors"
+                                            />
+                                        ) : (
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="any"
+                                                value={val}
+                                                onChange={(e) =>
+                                                    onChangeVariable(service.id, v.name, e.target.value)
+                                                }
+                                                placeholder={v.default_value || '0'}
+                                                className="w-full max-w-[5.5rem] text-center font-mono font-bold text-sm bg-transparent border-b-2 border-dashed border-border hover:border-primary/50 focus:border-primary focus:outline-hidden p-0.5 text-foreground transition-colors"
+                                            />
+                                        )}
                                     </div>
                                 );
                             }
@@ -214,6 +250,7 @@ export function QuoteServiceSheetBlock({
                             const f = col.formula;
                             const evaluation = formulaEvaluations[f.id ?? f.name] ?? {
                                 success: false,
+                                isNumeric: false,
                                 result: 0,
                                 formattedResult: '0',
                                 intermediateResults: {},
@@ -231,10 +268,12 @@ export function QuoteServiceSheetBlock({
                                             }`}
                                     >
                                         {evaluation.success
-                                            ? `Bs. ${evaluation.result.toLocaleString('en-US', {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })}`
+                                            ? evaluation.isNumeric !== false && typeof evaluation.result === 'number'
+                                                ? `Bs. ${evaluation.result.toLocaleString('en-US', {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                })}`
+                                                : String(evaluation.result)
                                             : 'Bs. —'}
                                     </span>
                                 </div>

@@ -20,7 +20,7 @@ class ServiceController extends Controller
     {
         $services = Service::with([
             'formulas' => function ($query) {
-                $query->with('variables:id,name,type,value_type,default_value')->orderBy('id', 'asc');
+                $query->with('variables:id,name,type,value_type,default_value,options')->orderBy('id', 'asc');
             },
         ])
             ->orderBy('created_at', 'desc')
@@ -44,6 +44,7 @@ class ServiceController extends Controller
                             'type' => $v->type,
                             'value_type' => $v->value_type,
                             'default_value' => $v->default_value,
+                            'options' => $v->options,
                         ];
                     })->values()->all(),
                 ];
