@@ -31,15 +31,17 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface QuoteCreateProps {
     services?: ServiceItem[];
     parameters?: ParameterItem[];
+    quoteCode?: string;
     nextQuoteCode?: string;
 }
 
 export default function QuoteCreate({
     services = [],
     parameters = [],
-    nextQuoteCode = 'COT-2026-00001',
+    quoteCode: propQuoteCode,
+    nextQuoteCode,
 }: QuoteCreateProps) {
-    const quoteCode = nextQuoteCode || 'COT-2026-00001';
+    const quoteCode = propQuoteCode || nextQuoteCode || 'COT-2026-00001';
     const availableServices = services;
     const availableParameters = parameters;
 
@@ -78,6 +80,14 @@ export default function QuoteCreate({
     // Servicios activos seleccionados para la cotización
     const activeServices = availableServices.filter((s) => selectedServiceIds.includes(s.id));
 
+    // Parámetros clasificados: Tipo de Proyecto para la ficha del cliente y el resto para diseño
+    const projectCategoryParameters = availableParameters.filter(
+        (p) => p.group === 'project_category'
+    );
+    const otherParameters = availableParameters.filter(
+        (p) => p.group !== 'project_category'
+    );
+
     // Tabla activa seleccionada
     const activeGroup =
         floorGroups.find((g) => g.id === activeGroupId) ??
@@ -100,16 +110,23 @@ export default function QuoteCreate({
                         {/* Cabecera de la Hoja y Título Central */}
                         <QuoteHeader quoteCode={quoteCode} />
 
-                        {/* Ficha del Cliente (4 Cajas Editables) */}
+                        {/* Ficha del Cliente (4 Cajas Editables: Propietario, Celular, Dirección y Categoría de Proyecto) */}
                         <QuoteClientCard
                             clientData={clientData}
                             onChange={updateClientField}
+                            projectCategoryParameters={projectCategoryParameters}
+                            selectedProjectCategoryId={designParameters['project_category_id']}
+                            onProjectCategoryChange={(id, val, label) => {
+                                updateDesignParameter('project_category_id', id);
+                                updateDesignParameter('project_category', val);
+                                updateDesignParameter('project_category_label', label);
+                            }}
                         />
 
-                        {/* Parámetros de Diseño (Superficie de Terreno, Viáticos, Tipo de Proyecto) */}
+                        {/* Parámetros de Diseño Restantes (Superficie de Terreno, Viáticos, Descuentos) */}
                         <QuoteDesignParameters
                             values={designParameters}
-                            availableParameters={availableParameters}
+                            availableParameters={otherParameters}
                             onChange={updateDesignParameter}
                         />
 

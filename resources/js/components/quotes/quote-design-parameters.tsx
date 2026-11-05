@@ -4,33 +4,29 @@ export type { DesignParameters, ParameterItem };
 
 interface QuoteDesignParametersProps {
     values?: DesignParameters;
-    parameters?: DesignParameters;
     availableParameters?: ParameterItem[];
     onChange: (key: string, value: string) => void;
 }
 
 interface ParameterGroup {
-    key: string;
-    label: string;
+    group: string;
+    group_label: string;
     items: ParameterItem[];
 }
 
 export function QuoteDesignParameters({
-    values,
-    parameters,
+    values = {},
     availableParameters = [],
     onChange,
 }: QuoteDesignParametersProps) {
-    const currentValues = values ?? parameters ?? {};
-
-    // 1. Agrupar los parámetros dinámicamente por su grupo de base de datos usando un Map
+    // 1. Agrupar los parámetros dinámicamente por su columna 'group' de la base de datos
     const groupsMap = new Map<string, ParameterGroup>();
 
     availableParameters.forEach((param) => {
         if (!groupsMap.has(param.group)) {
             groupsMap.set(param.group, {
-                key: param.group,
-                label: param.group_label || param.group.replace(/_/g, ' ').toUpperCase(),
+                group: param.group,
+                group_label: param.group_label ?? param.group,
                 items: [],
             });
         }
@@ -57,45 +53,44 @@ export function QuoteDesignParameters({
                         {/* Filas dinámicas generadas estrictamente a partir de los grupos existentes en la BD */}
                         {dynamicGroups.map((group, index) => {
                             const isLast = index === dynamicGroups.length - 1;
-                            const currentValue = currentValues[group.key] ?? '';
+                            const currentId = values[`${group.group}_id`] ?? '';
 
                             return (
-                                <tr key={group.key} className={!isLast ? 'border-b border-border' : ''}>
+                                <tr key={group.group} className={!isLast ? 'border-b border-border' : ''}>
                                     <td className="bg-muted/70 text-muted-foreground font-bold px-3 py-2 text-center uppercase tracking-wider w-1/3 border-r border-border text-[11px]">
-                                        {group.label.toUpperCase()}
+                                        {group.group_label.toUpperCase()}
                                     </td>
                                     <td className="bg-card px-3 py-1.5 w-2/3">
                                         <div className="flex items-center justify-center">
                                             <select
-                                                value={currentValue}
+                                                value={String(currentId)}
                                                 onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    onChange(group.key, val);
+                                                    const selectedId = e.target.value;
                                                     const selected = group.items.find(
-                                                        (item) => String(item.value) === val
+                                                        (item) => String(item.id) === selectedId
                                                     );
-                                                    onChange(
-                                                        `${group.key}_label`,
-                                                        selected ? selected.name : ''
-                                                    );
+                                                    if (selected) {
+                                                        onChange(`${group.group}_id`, String(selected.id));
+                                                        onChange(group.group, String(selected.value));
+                                                        onChange(`${group.group}_label`, selected.name);
+                                                    } else {
+                                                        onChange(`${group.group}_id`, '');
+                                                        onChange(group.group, '');
+                                                        onChange(`${group.group}_label`, '');
+                                                    }
                                                 }}
                                                 className="w-full text-center font-bold text-foreground text-xs bg-transparent border-none p-0 focus:outline-hidden cursor-pointer"
                                             >
                                                 <option value="" className="bg-card text-muted-foreground">
-                                                    Seleccionar {group.label.toLowerCase()}...
+                                                    Seleccionar...
                                                 </option>
                                                 {group.items.map((item) => (
                                                     <option
                                                         key={item.id}
-                                                        value={String(item.value)}
+                                                        value={String(item.id)}
                                                         className="bg-card text-foreground"
                                                     >
-                                                        {item.name}{' '}
-                                                        {item.type === 'percentage'
-                                                            ? `(${item.value}%)`
-                                                            : Number(item.value) === 0
-                                                              ? '(0 Bs.)'
-                                                              : `(${item.value} Bs.)`}
+                                                        {item.name}
                                                     </option>
                                                 ))}
                                             </select>

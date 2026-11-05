@@ -304,13 +304,17 @@ export function QuotePrintSheet({
         year: 'numeric',
     });
 
-    // ── PARÁMETROS DE DISEÑO DINÁMICOS MEDIANTE MAP ──
-    const groupsMap = new Map<string, { key: string; label: string }>();
+    // ── PARÁMETROS DE DISEÑO DINÁMICOS MEDIANTE MAP (EXCLUYENDO CATEGORÍA DEL PROYECTO QUE YA ESTÁ EN LA CABECERA) ──
+    const projectCategoryParam = (availableParameters || []).find((p) => p.group === 'project_category');
+    const hasProjectCategory = Boolean(projectCategoryParam);
+    const projectCategoryHeaderLabel = projectCategoryParam?.group_label?.toUpperCase() ?? '';
+
+    const groupsMap = new Map<string, { group: string; group_label: string }>();
     (availableParameters || []).forEach((param) => {
-        if (!groupsMap.has(param.group)) {
+        if (param.group !== 'project_category' && !groupsMap.has(param.group)) {
             groupsMap.set(param.group, {
-                key: param.group,
-                label: param.group_label || param.group.replace(/_/g, ' ').toUpperCase(),
+                group: param.group,
+                group_label: param.group_label ?? param.group,
             });
         }
     });
@@ -389,8 +393,8 @@ export function QuotePrintSheet({
                     </span>
                 </div>
 
-                {/* Fila 2: Dirección (Izq) + CI (Der) */}
-                <div className="col-span-7 flex items-end">
+                {/* Fila 2: Dirección (Izq) + Categoría de Proyecto si existe (Der) */}
+                <div className={`${hasProjectCategory ? 'col-span-7' : 'col-span-12'} flex items-end`}>
                     <span className="font-bold text-gray-800 shrink-0 mr-2 uppercase tracking-tight">
                         DIRECCIÓN:
                     </span>
@@ -398,14 +402,16 @@ export function QuotePrintSheet({
                         {clientData.address || '—'}
                     </span>
                 </div>
-                <div className="col-span-5 flex items-end">
-                    <span className="font-bold text-gray-800 shrink-0 mr-2 uppercase tracking-tight">
-                        C.I. / NIT:
-                    </span>
-                    <span className="flex-1 font-bold border-b border-gray-600 pb-0.5 px-1 truncate uppercase">
-                        {clientData.ci || '—'}
-                    </span>
-                </div>
+                {hasProjectCategory && (
+                    <div className="col-span-5 flex items-end">
+                        <span className="font-bold text-gray-800 shrink-0 mr-2 uppercase tracking-tight">
+                            {projectCategoryHeaderLabel}:
+                        </span>
+                        <span className="flex-1 font-bold border-b border-gray-600 pb-0.5 px-1 truncate uppercase">
+                            {designParameters.project_category_label || '—'}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* ── 3. PARÁMETROS DE DISEÑO (DINÁMICOS DESDE LA BD) ── */}
@@ -418,19 +424,17 @@ export function QuotePrintSheet({
                         <tbody>
                             {printParamGroups.map((group, idx) => {
                                 const isLast = idx === printParamGroups.length - 1;
-                                const label = designParameters[`${group.key}_label`];
-                                const rawVal = designParameters[group.key];
-                                const displayVal = label
-                                    ? `${label} (${rawVal})`
-                                    : rawVal || '—';
+                                const label = designParameters[`${group.group}_label`];
+                                const rawVal = designParameters[group.group];
+                                const displayVal = label || rawVal || '—';
 
                                 return (
                                     <tr
-                                        key={group.key}
+                                        key={group.group}
                                         className={!isLast ? 'border-b border-gray-300' : ''}
                                     >
                                         <td className="border-r border-gray-400 px-3 py-1 font-bold text-gray-800 bg-gray-50/50 w-2/3 uppercase text-center">
-                                            {group.label}
+                                            {group.group_label}
                                         </td>
                                         <td className="px-3 py-1 font-bold text-black font-mono w-1/3">
                                             {displayVal}

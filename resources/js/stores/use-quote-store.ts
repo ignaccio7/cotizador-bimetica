@@ -14,7 +14,6 @@ export const INITIAL_CLIENT_DATA: ClientData = {
     phone: '',
     ci: '',
     address: '',
-    occupation: '',
 };
 
 export const INITIAL_FLOOR_GROUPS: FloorGroupItem[] = [
