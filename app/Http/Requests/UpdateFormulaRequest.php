@@ -42,11 +42,12 @@ class UpdateFormulaRequest extends FormRequest
                 'regex:/^[a-z0-9_]+$/',
                 Rule::notIn(['and', 'or', 'not', 'xor', 'true', 'false', 'null', 'undefined', 'ceil', 'floor', 'round', 'fix', 'mod', 'to', 'in']),
                 Rule::unique('formulas', 'code')
-                    ->where(fn ($query) => $query->where('service_id', $serviceId))
+                    ->where(fn($query) => $query->where('service_id', $serviceId))
                     ->ignore($formulaId),
             ],
             'expression' => ['required', 'string'],
             'is_visible' => ['boolean'],
+            'is_subtotal' => ['boolean'],
             'variable_names' => ['nullable', 'array'],
             'variable_names.*' => ['string'],
         ];
@@ -78,7 +79,8 @@ class UpdateFormulaRequest extends FormRequest
             'code.not_in' => 'El identificador no puede ser una palabra reservada del motor matemático (and, or, not, ceil, etc.).',
             'code.unique' => 'Ya existe una fórmula con este identificador en este servicio.',
             'expression.required' => 'La expresión matemática de cálculo es obligatoria.',
-            'is_visible.boolean' => 'El campo de visibilidad debe ser un valor booleano.',
+            'is_visible.boolean' => 'El campo de visibilidad debe ser Verdadero o Falso.',
+            'is_subtotal.boolean' => 'El campo de subtotal debe ser Verdadero o Falso.',
             'variable_names.array' => 'La lista de variables debe ser un arreglo.',
         ];
     }

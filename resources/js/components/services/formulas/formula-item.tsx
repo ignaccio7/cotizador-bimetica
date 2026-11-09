@@ -1,4 +1,4 @@
-import { Calculator, Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
+import { BadgeCheck, Calculator, Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FormulaItem } from './formula-types';
@@ -29,7 +29,14 @@ export function FormulaCard({ formula, index, onEdit, onDelete, onTest }: Formul
                     )}
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {formula.is_subtotal && (
+                        <Badge className="bg-primary/10 text-primary border-primary/30 text-[10px] gap-1 font-bold">
+                            <BadgeCheck className="size-3 text-secondary" />
+                            Subtotal
+                        </Badge>
+                    )}
+
                     {formula.is_visible ? (
                         <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700/60 text-[10px] gap-1 font-medium">
                             <Eye className="size-3" />

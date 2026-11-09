@@ -1,5 +1,6 @@
 import { Layers, Search, Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
+import { ServiceCategoryBadge } from '@/components/services/service-category-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import type { FormulaItem } from '@/components/services/formulas/formula-types';
 export interface ServiceItem {
     id: number;
     name: string;
+    category?: 'design' | 'construction';
     description: string | null;
     created_at?: string;
     formulas?: FormulaItem[];
@@ -78,9 +80,12 @@ export function ServicesList({
                                 }`}
                         >
                             <div className="flex items-start justify-between gap-2">
-                                <h3 className="text-sm leading-tight font-bold text-foreground">
-                                    {item.name}
-                                </h3>
+                                <div className="space-y-1 min-w-0">
+                                    <h3 className="text-sm leading-tight font-bold text-foreground">
+                                        {item.name}
+                                    </h3>
+                                    <ServiceCategoryBadge category={item.category} />
+                                </div>
                                 <Badge
                                     variant="outline"
                                     className="shrink-0 border-border font-mono text-[10px] font-medium text-muted-foreground"

@@ -1,5 +1,6 @@
 import { Form } from '@inertiajs/react';
 import InputError from '@/components/input-error';
+import { ServiceCategoryBadge } from '@/components/services/service-category-badge';
 import type { ServiceItem } from '@/components/services/services-list';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,6 +70,22 @@ export function ServiceForm({
                                     <InputError message={errors.name} className="mt-1.5" />
                                 </div>
 
+                                {/* Categoría */}
+                                <div>
+                                    <Label htmlFor="create-category">Categoría del Servicio</Label>
+                                    <select
+                                        id="create-category"
+                                        name="category"
+                                        defaultValue="design"
+                                        className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-semibold text-foreground focus:ring-1 focus:ring-ring focus:outline-hidden cursor-pointer"
+                                        required
+                                    >
+                                        <option value="design">Diseño</option>
+                                        <option value="construction">Construcción</option>
+                                    </select>
+                                    <InputError message={errors.category} className="mt-1.5" />
+                                </div>
+
                                 {/* Descripción y Entregables */}
                                 <div>
                                     <div className="mb-1.5 flex items-center justify-between">
@@ -135,9 +152,12 @@ export function ServiceForm({
                             Configuración de nombre comercial y alcance de entregables para cotizaciones.
                         </CardDescription>
                     </div>
-                    <Badge className="bg-primary font-mono text-xs text-primary-foreground">
-                        ID #{selectedService.id}
-                    </Badge>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <ServiceCategoryBadge category={selectedService.category} />
+                        <Badge className="bg-primary font-mono text-xs text-primary-foreground">
+                            ID #{selectedService.id}
+                        </Badge>
+                    </div>
                 </div>
             </CardHeader>
 
@@ -163,6 +183,24 @@ export function ServiceForm({
                                     required
                                 />
                                 <InputError message={errors.name} className="mt-1.5" />
+                            </div>
+
+                            {/* Categoría */}
+                            <div>
+                                <Label htmlFor={`edit-category-${selectedService.id}`}>
+                                    Categoría del Servicio
+                                </Label>
+                                <select
+                                    id={`edit-category-${selectedService.id}`}
+                                    name="category"
+                                    defaultValue={selectedService.category ?? 'design'}
+                                    className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-semibold text-foreground focus:ring-1 focus:ring-ring focus:outline-hidden cursor-pointer"
+                                    required
+                                >
+                                    <option value="design">Diseño Arquitectónico</option>
+                                    <option value="construction">Construcción</option>
+                                </select>
+                                <InputError message={errors.category} className="mt-1.5" />
                             </div>
 
                             {/* Descripción y Entregables */}

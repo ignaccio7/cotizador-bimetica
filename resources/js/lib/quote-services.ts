@@ -15,12 +15,14 @@ export interface FormulaItem {
     code?: string;
     expression: string;
     is_visible?: boolean;
+    is_subtotal?: boolean;
     variables?: VariableItem[];
 }
 
 export interface ServiceItem {
     id: number;
     name: string;
+    category?: 'design' | 'construction';
     description?: string | null;
     formulas?: FormulaItem[];
 }

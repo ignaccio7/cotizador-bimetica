@@ -1,4 +1,5 @@
 import { Check, Trash2 } from 'lucide-react';
+import { ServiceCategoryBadge } from '@/components/services/service-category-badge';
 import { ServiceItem } from '@/lib/quote-services';
 
 interface QuoteActiveServicesProps {
@@ -29,31 +30,32 @@ export function QuoteActiveServices({
                     className="group relative flex items-start justify-between gap-2 rounded-lg border border-border bg-card p-2.5 transition-colors hover:border-primary/50 shadow-2xs"
                 >
                     <div className="flex-1 min-w-0">
-                        {/* Nombre del servicio con check */}
+                        {/* Nombre del servicio con check y badge de categoría */}
                         <div className="flex items-center gap-1.5 font-bold text-xs text-foreground">
                             <Check className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             <span className="truncate">{service.name}</span>
+                            <ServiceCategoryBadge category={service.category} />
                         </div>
 
-                        {/* Descripción técnica */}
-                        {service.description && (
-                            <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-                                {service.description}
-                            </div>
-                        )}
-                    </div>
+                            {/* Descripción técnica */}
+                            {service.description && (
+                                <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                                    {service.description}
+                                </div>
+                            )}
+                        </div>
 
-                    {/* Botón para quitar servicio */}
-                    <button
-                        type="button"
-                        onClick={() => onRemoveService?.(service.id)}
-                        className="size-5 rounded flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer shrink-0"
-                        title="Quitar servicio de la cotización"
-                    >
-                        <Trash2 className="size-3" />
-                    </button>
-                </div>
-            ))}
-        </div>
-    );
-}
+                        {/* Botón para quitar servicio */}
+                        <button
+                            type="button"
+                            onClick={() => onRemoveService?.(service.id)}
+                            className="size-5 rounded flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer shrink-0"
+                            title="Quitar servicio de la cotización"
+                        >
+                            <Trash2 className="size-3" />
+                        </button>
+                    </div>
+                ))}
+            </div>
+        );
+    }

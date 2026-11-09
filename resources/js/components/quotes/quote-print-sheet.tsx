@@ -1,4 +1,6 @@
+import { BimeticaPaymentQr } from '@/components/quotes/bimetica-payment-qr';
 import type { ClientData } from '@/components/quotes/quote-client-card';
+import { calculateQuoteBreakdown } from '@/components/quotes/quote-financial-panel';
 import type { FloorGroupItem } from '@/components/quotes/quote-floor-table';
 import { evaluateFormulaChain } from '@/lib/formula-engine';
 import {
@@ -320,6 +322,12 @@ export function QuotePrintSheet({
     });
     const printParamGroups = Array.from(groupsMap.values());
 
+    const { totalAmount } = calculateQuoteBreakdown(
+        activeServices,
+        serviceVariables,
+        designParameters
+    );
+
     // ── SECUENCIA RELACIONAL: ASOCIAR CADA TABLA A SUS SERVICIOS CORRESPONDIENTES ──
     const printedServiceIds = new Set<number>();
 
@@ -487,11 +495,29 @@ export function QuotePrintSheet({
                 )}
             </div>
 
+            {/* ── 5.1 TOTAL NETO ACORDADO EN IMPRESIÓN ── */}
+            {totalAmount > 0 && (
+                <div className="flex justify-end mb-3 break-inside-avoid">
+                    <div className="border border-black bg-gray-50/70 px-4 py-1.5 text-right rounded">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-800 mr-3">
+                            Monto Total Neto Acordado:
+                        </span>
+                        <span className="font-mono font-bold text-black text-xs">
+                            Bs.{' '}
+                            {totalAmount.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                            })}
+                        </span>
+                    </div>
+                </div>
+            )}
+
             {/* ── 6. PIE DE PÁGINA INSTITUCIONAL ── */}
             <div className="mt-4 pt-3 border-t border-gray-400 text-[10px] break-inside-avoid">
-                <div className="grid grid-cols-12 gap-3 items-end mb-3">
-                    {/* Términos y Modalidad de Pagos */}
-                    <div className="col-span-7 space-y-0.5">
+                <div className="grid grid-cols-12 gap-3 items-start mb-3">
+                    {/* Términos y Modalidad de Pagos (5 cols) */}
+                    <div className="col-span-5 space-y-0.5">
                         <p className="italic text-gray-600 font-serif">
                             Esta cotización tiene una validez de 7 días calendario.
                         </p>
@@ -511,14 +537,44 @@ export function QuotePrintSheet({
                         </ol>
                     </div>
 
-                    {/* Asesor Comercial */}
-                    <div className="col-span-5 text-right space-y-0.5">
-                        <p className="font-bold text-black text-[10.5px] uppercase">
-                            Asesor Comercial
+                    {/* Cuentas Habilitadas (4 cols - Texto limpio sin tarjeta) */}
+                    <div className="col-span-4 space-y-0.5">
+                        <p className="font-bold text-[#003e65] text-[10.5px]">
+                            Cuentas Habilitadas:
                         </p>
-                        <p className="italic text-gray-700">
-                            {advisorName} - Cel: {advisorPhone}
-                        </p>
+                        <div className="text-gray-700 space-y-0.5 leading-snug text-[9.5px]">
+                            <p>
+                                <span className="font-semibold text-black">Banco Unión (Bs.):</span>{' '}
+                                <span className="font-mono">100000458921</span> (Cta. Cte.)
+                            </p>
+                            <p>
+                                <span className="font-semibold text-black">Banco BCP (Bs.):</span>{' '}
+                                <span className="font-mono">201-5098234-3-12</span> (Cta. Ahorros)
+                            </p>
+                            <p className="text-[9px]">
+                                Titular: <span className="font-bold text-black">BIMETICA S.R.L.</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* QR Simple y Asesor Comercial (3 cols) */}
+                    <div className="col-span-3 flex flex-col items-end gap-1.5 text-right">
+                        <div className="flex items-center gap-1.5 border border-gray-300 rounded p-1 bg-white">
+                            <BimeticaPaymentQr size={44} />
+                            <div className="text-left text-[8.5px] leading-tight">
+                                <span className="font-bold text-[#003e65] block">QR SIMPLE</span>
+                                <span className="text-gray-600 block">Bimetica S.R.L.</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-0.5">
+                            <p className="font-bold text-black text-[10px] uppercase">
+                                Asesor Comercial
+                            </p>
+                            <p className="italic text-gray-700 text-[9.5px]">
+                                {advisorName} - Cel: {advisorPhone}
+                            </p>
+                        </div>
                     </div>
                 </div>
 

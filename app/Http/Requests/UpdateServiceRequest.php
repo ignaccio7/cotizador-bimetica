@@ -24,6 +24,7 @@ class UpdateServiceRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100'],
+            'category' => ['required', 'string', 'in:design,construction'],
             'description' => ['nullable', 'string'],
         ];
     }
@@ -37,6 +38,7 @@ class UpdateServiceRequest extends FormRequest
     {
         return [
             'name' => 'nombre del servicio',
+            'category' => 'categoría del servicio',
             'description' => 'descripción y entregables',
         ];
     }

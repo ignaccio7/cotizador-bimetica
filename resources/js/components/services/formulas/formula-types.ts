@@ -14,6 +14,7 @@ export interface FormulaItem {
     code: string;
     expression: string;
     is_visible: boolean;
+    is_subtotal?: boolean;
     variable_names: string[];
     variables?: VariableItem[];
 }

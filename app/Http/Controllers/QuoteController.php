@@ -21,7 +21,7 @@ class QuoteController extends Controller
             },
         ])
             ->orderBy('id', 'asc')
-            ->get(['id', 'name', 'description']);
+            ->get(['id', 'name', 'category', 'description']);
 
         // Mapear fórmulas y variables para consumo directo en el cotizador
         $services->each(function ($service) {
@@ -33,6 +33,7 @@ class QuoteController extends Controller
                     'code' => $formula->code,
                     'expression' => $formula->expression,
                     'is_visible' => (bool) $formula->is_visible,
+                    'is_subtotal' => (bool) $formula->is_subtotal,
                     'variables' => $formula->variables->map(function ($v) {
                         return [
                             'id' => $v->id,

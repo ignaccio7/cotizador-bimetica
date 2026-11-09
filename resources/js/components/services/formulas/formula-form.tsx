@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { useState } from 'react';
-import { Eye, EyeOff, Pencil, Plus, X } from 'lucide-react';
+import { BadgeCheck, Eye, EyeOff, Pencil, Plus, X } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +45,7 @@ export function FormulaForm({
     const [isCodeCustomized, setIsCodeCustomized] = useState(Boolean(initialFormula?.code));
     const [expression, setExpression] = useState(initialFormula?.expression ?? '');
     const [isVisible, setIsVisible] = useState(initialFormula?.is_visible ?? true);
+    const [isSubtotal, setIsSubtotal] = useState(Boolean(initialFormula?.is_subtotal));
 
     // Otras fórmulas del servicio (excluyendo la que estamos editando si es edición)
     const otherFormulas = allFormulas.filter((f) => !initialFormula || f.id !== initialFormula.id);
@@ -222,10 +223,10 @@ export function FormulaForm({
                     <>
                         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
                             {/* Nombre / Cabecera Visual */}
-                            <div className="sm:col-span-5">
+                            <div className="sm:col-span-4">
                                 <div className="h-5 flex items-center">
                                     <Label htmlFor="formula-name-input" className="text-xs">
-                                        Nombre / Cabecera de la Columna
+                                        Nombre / Cabecera
                                     </Label>
                                 </div>
                                 <Input
@@ -242,10 +243,10 @@ export function FormulaForm({
                             </div>
 
                             {/* Identificador / Variable para fórmulas siguientes */}
-                            <div className="sm:col-span-4">
+                            <div className="sm:col-span-3">
                                 <div className="h-5 flex items-center justify-between">
                                     <Label htmlFor="formula-code-input" className="text-xs">
-                                        Identificador (Variable)
+                                        Identificador
                                     </Label>
                                     <span className="text-[10px] text-muted-foreground font-mono">
                                         [a-z0-9_]
@@ -269,7 +270,7 @@ export function FormulaForm({
                             </div>
 
                             {/* Visibilidad en Cotización */}
-                            <div className="sm:col-span-3">
+                            <div className="sm:col-span-2">
                                 <div className="h-5 flex items-center">
                                     <Label className="text-xs">Visibilidad</Label>
                                 </div>
@@ -277,10 +278,11 @@ export function FormulaForm({
                                     <button
                                         type="button"
                                         onClick={() => setIsVisible(!isVisible)}
-                                        className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors cursor-pointer ${isVisible
+                                        className={`flex h-8 w-full items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors cursor-pointer ${isVisible
                                                 ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 font-bold'
                                                 : 'border-border bg-background text-muted-foreground'
                                             }`}
+                                        title={isVisible ? 'Visible como columna en cotización' : 'Cálculo interno no visible en cotización'}
                                     >
                                         {isVisible ? (
                                             <>
@@ -296,6 +298,28 @@ export function FormulaForm({
                                     </button>
                                 </div>
                                 <input type="hidden" name="is_visible" value={isVisible ? 1 : 0} />
+                            </div>
+
+                            {/* Indicador de Subtotal Oficial del Servicio */}
+                            <div className="sm:col-span-3">
+                                <div className="h-5 flex items-center justify-between">
+                                    <Label className="text-xs">Subtotal Servicio</Label>
+                                </div>
+                                <div className="mt-1 flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsSubtotal(!isSubtotal)}
+                                        className={`flex h-8 w-full items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors cursor-pointer ${isSubtotal
+                                                ? 'border-secondary bg-secondary/15 text-secondary-foreground font-bold shadow-2xs'
+                                                : 'border-border bg-background text-muted-foreground hover:bg-muted/40'
+                                            }`}
+                                        title={isSubtotal ? 'Esta fórmula define el subtotal a cobrar por el servicio' : 'Fórmula parcial o factor de cálculo'}
+                                    >
+                                        <BadgeCheck className={`size-3.5 ${isSubtotal ? 'text-secondary' : 'text-muted-foreground/60'}`} />
+                                        <span>{isSubtotal ? 'Es Subtotal' : 'Parcial'}</span>
+                                    </button>
+                                </div>
+                                <input type="hidden" name="is_subtotal" value={isSubtotal ? 1 : 0} />
                             </div>
                         </div>
 

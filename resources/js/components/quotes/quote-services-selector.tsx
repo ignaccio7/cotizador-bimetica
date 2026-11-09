@@ -1,5 +1,6 @@
-import { Check, Plus, Search, XIcon } from 'lucide-react';
+import { Check, Compass, HardHat, Plus, Search, XIcon } from 'lucide-react';
 import { useState } from 'react';
+import { ServiceCategoryBadge } from '@/components/services/service-category-badge';
 import { QuoteActiveServices } from './quote-active-services';
 import type { ServiceItem } from '@/lib/quote-services';
 
@@ -13,9 +14,11 @@ interface QuoteServicesSelectorProps {
     onToggleService?: (serviceId: number) => void;
 }
 
+type CategoryTab = 'all' | 'design' | 'construction';
+
 /**
- * Selector Multicheck de Servicios en Sidebar (Pasos 7.1 y 7.2)
- * Integra las tarjetas activas modularizadas en QuoteActiveServices (Paso 7.3)
+ * Selector Multicheck de Servicios en Sidebar (Paso 7.6.3)
+ * Organiza los servicios en dos categorías claras: Diseño Arquitectónico y Construcción.
  */
 export function QuoteServicesSelector({
     servicesCatalog = [],
@@ -28,14 +31,55 @@ export function QuoteServicesSelector({
     // 2. Estado para el texto del buscador
     const [searchQuery, setSearchQuery] = useState('');
 
-    // 3. Filtrar catálogo según búsqueda
+    // 3. Estado de pestaña activa de categoría
+    const [activeTab, setActiveTab] = useState<CategoryTab>('all');
+
+    // 4. Filtrar catálogo según búsqueda
     const q = searchQuery.trim().toLowerCase();
-    const filteredServices = q
+    const searchedServices = q
         ? servicesCatalog.filter((s) => s.name.toLowerCase().includes(q))
         : servicesCatalog;
 
-    // 4. Servicios activos seleccionados (para las tarjetas resumen)
+    // 5. Separar por categorías
+    const designServices = searchedServices.filter((s) => (s.category || 'design') === 'design');
+    const constructionServices = searchedServices.filter((s) => s.category === 'construction');
+
+    // 6. Servicios activos seleccionados (para las tarjetas resumen)
     const activeServices = servicesCatalog.filter((s) => selectedServiceIds.includes(s.id));
+
+    // Renderizador de cada ítem de servicio
+    const renderServiceButton = (service: ServiceItem) => {
+        const isSelected = selectedServiceIds.includes(service.id);
+
+        return (
+            <button
+                key={service.id}
+                type="button"
+                onClick={() => onToggleService?.(service.id)}
+                className={`w-full flex items-center justify-between rounded p-1.5 text-left text-xs transition-colors cursor-pointer ${
+                    isSelected
+                        ? 'bg-primary-950 text-white shadow-2xs'
+                        : 'bg-card hover:bg-muted text-foreground'
+                }`}
+            >
+                <div className="flex items-center gap-2 min-w-0">
+                    <div
+                        className={`size-3.5 rounded flex items-center justify-center shrink-0 transition-colors ${
+                            isSelected
+                                ? 'bg-secondary text-primary-950'
+                                : 'border border-border bg-card'
+                        }`}
+                    >
+                        {isSelected && <Check className="size-2.5 stroke-[3]" />}
+                    </div>
+                    <span className="truncate font-semibold text-[11px]">
+                        {service.name}
+                    </span>
+                </div>
+                <ServiceCategoryBadge category={service.category} />
+            </button>
+        );
+    };
 
     return (
         <div className="space-y-2.5">
@@ -69,7 +113,7 @@ export function QuoteServicesSelector({
                 </span>
             </button>
 
-            {/* Panel Desplegable con Buscador y Lista de Checkboxes (Paso 7.2) */}
+            {/* Panel Desplegable con Buscador, Filtro por Categorías y Lista */}
             {isSelectorOpen && (
                 <div className="rounded-lg border border-border bg-muted/30 p-2.5 space-y-2 animate-in fade-in-50 duration-150">
                     {/* Buscador Rápido */}
@@ -84,49 +128,94 @@ export function QuoteServicesSelector({
                         />
                     </div>
 
-                    {/* Lista de Checkboxes */}
-                    <div className="max-h-48 overflow-y-auto space-y-1 pr-0.5">
-                        {filteredServices.length === 0 ? (
+                    {/* Selector de Pestañas de Categoría */}
+                    <div className="grid grid-cols-3 gap-1 bg-muted/60 p-0.5 rounded-md text-[10px] font-bold">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('all')}
+                            className={`py-1 rounded transition-colors text-center cursor-pointer ${
+                                activeTab === 'all'
+                                    ? 'bg-card text-foreground shadow-2xs'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('design')}
+                            className={`py-1 rounded transition-colors text-center cursor-pointer flex items-center justify-center gap-1 ${
+                                activeTab === 'design'
+                                    ? 'bg-card text-foreground shadow-2xs'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            <Compass className="size-2.5 text-[#2684a8]" />
+                            <span>Diseño</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('construction')}
+                            className={`py-1 rounded transition-colors text-center cursor-pointer flex items-center justify-center gap-1 ${
+                                activeTab === 'construction'
+                                    ? 'bg-card text-foreground shadow-2xs'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            <HardHat className="size-2.5 text-amber-500" />
+                            <span>Construcción</span>
+                        </button>
+                    </div>
+
+                    {/* Lista Agrupada o Filtrada */}
+                    <div className="max-h-52 overflow-y-auto space-y-2 pr-0.5">
+                        {searchedServices.length === 0 ? (
                             <p className="text-[11px] text-muted-foreground text-center py-2 italic">
                                 No se encontraron servicios
                             </p>
-                        ) : (
-                            filteredServices.map((service) => {
-                                const isSelected = selectedServiceIds.includes(service.id);
-                                return (
-                                    <button
-                                        key={service.id}
-                                        type="button"
-                                        onClick={() => onToggleService?.(service.id)}
-                                        className={`w-full flex items-center justify-between rounded p-1.5 text-left text-xs transition-colors cursor-pointer ${isSelected
-                                                ? 'bg-primary-950 text-white shadow-2xs'
-                                                : 'bg-card hover:bg-muted text-foreground'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            {/* Cajita Cuadrada de Check */}
-                                            <div
-                                                className={`size-3.5 rounded flex items-center justify-center shrink-0 transition-colors ${isSelected
-                                                        ? 'bg-secondary text-primary-950'
-                                                        : 'border border-border bg-card'
-                                                    }`}
-                                            >
-                                                {isSelected && <Check className="size-2.5 stroke-[3]" />}
-                                            </div>
-                                            {/* Nombre del Servicio */}
-                                            <span className="truncate font-semibold text-[11px]">
-                                                {service.name}
-                                            </span>
+                        ) : activeTab === 'all' ? (
+                            <>
+                                {designServices.length > 0 && (
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-1 px-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <Compass className="size-3 text-[#2684a8]" />
+                                            <span>Servicios de Diseño</span>
                                         </div>
-                                    </button>
-                                );
-                            })
+                                        {designServices.map(renderServiceButton)}
+                                    </div>
+                                )}
+                                {constructionServices.length > 0 && (
+                                    <div className="space-y-1 pt-1">
+                                        <div className="flex items-center gap-1 px-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <HardHat className="size-3 text-amber-500" />
+                                            <span>Servicios de Construcción</span>
+                                        </div>
+                                        {constructionServices.map(renderServiceButton)}
+                                    </div>
+                                )}
+                            </>
+                        ) : activeTab === 'design' ? (
+                            designServices.length === 0 ? (
+                                <p className="text-[11px] text-muted-foreground text-center py-2 italic">
+                                    No hay servicios de diseño
+                                </p>
+                            ) : (
+                                designServices.map(renderServiceButton)
+                            )
+                        ) : (
+                            constructionServices.length === 0 ? (
+                                <p className="text-[11px] text-muted-foreground text-center py-2 italic">
+                                    No hay servicios de construcción
+                                </p>
+                            ) : (
+                                constructionServices.map(renderServiceButton)
+                            )
                         )}
                     </div>
                 </div>
             )}
 
-            {/* Tarjetas Resumen de Servicios Activos (Paso 7.3 - Componente Modular) */}
+            {/* Tarjetas Resumen de Servicios Activos */}
             <QuoteActiveServices
                 services={activeServices}
                 onRemoveService={onToggleService}

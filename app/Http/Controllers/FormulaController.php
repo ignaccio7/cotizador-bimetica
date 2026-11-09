@@ -16,11 +16,16 @@ class FormulaController extends Controller
      */
     public function store(StoreFormulaRequest $request, Service $service): RedirectResponse
     {
+        if ($request->boolean('is_subtotal')) {
+            $service->formulas()->update(['is_subtotal' => false]);
+        }
+
         $formula = $service->formulas()->create([
             'name' => $request->validated('name'),
             'code' => $request->validated('code'),
             'expression' => $request->validated('expression'),
             'is_visible' => $request->boolean('is_visible'),
+            'is_subtotal' => $request->boolean('is_subtotal'),
         ]);
 
         if ($request->filled('variable_names')) {
@@ -36,11 +41,16 @@ class FormulaController extends Controller
      */
     public function update(UpdateFormulaRequest $request, Service $service, Formula $formula): RedirectResponse
     {
+        if ($request->boolean('is_subtotal')) {
+            $service->formulas()->where('id', '!=', $formula->id)->update(['is_subtotal' => false]);
+        }
+
         $formula->update([
             'name' => $request->validated('name'),
             'code' => $request->validated('code'),
             'expression' => $request->validated('expression'),
             'is_visible' => $request->boolean('is_visible'),
+            'is_subtotal' => $request->boolean('is_subtotal'),
         ]);
 
         if ($request->has('variable_names')) {

@@ -1,3 +1,4 @@
+import { SlidersHorizontal } from 'lucide-react';
 import type { DesignParameters, ParameterItem } from '@/lib/quote-services';
 
 export type { DesignParameters, ParameterItem };
@@ -41,13 +42,14 @@ export function QuoteDesignParameters({
     }
 
     return (
-        <section aria-label="Parámetros de Diseño" className="space-y-1.5">
-            <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
-                PARAMETROS DE DISEÑO
-            </h3>
+        <section aria-label="Parámetros de Diseño" className="space-y-2">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                <SlidersHorizontal className="size-3.5 text-secondary" />
+                <span>PARÁMETROS DE DISEÑO:</span>
+            </div>
 
-            {/* Tabla compacta y centrada idéntica a Google Sheets */}
-            <div className="w-full max-w-2xl border border-border rounded-lg overflow-hidden shadow-2xs">
+            {/* Tabla compacta y adaptable al ancho del contenedor */}
+            <div className="w-full border border-border rounded-lg overflow-hidden shadow-2xs">
                 <table className="w-full text-xs border-collapse">
                     <tbody>
                         {/* Filas dinámicas generadas estrictamente a partir de los grupos existentes en la BD */}

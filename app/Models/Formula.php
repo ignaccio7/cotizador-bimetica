@@ -22,6 +22,7 @@ class Formula extends Model
         'code',
         'expression',
         'is_visible',
+        'is_subtotal',
     ];
 
     /**
@@ -33,6 +34,7 @@ class Formula extends Model
     {
         return [
             'is_visible' => 'boolean',
+            'is_subtotal' => 'boolean',
         ];
     }
 

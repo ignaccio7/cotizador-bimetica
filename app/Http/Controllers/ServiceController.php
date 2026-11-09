@@ -24,7 +24,7 @@ class ServiceController extends Controller
             },
         ])
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'name', 'description', 'created_at']);
+            ->get(['id', 'name', 'category', 'description', 'created_at']);
 
         // Mapear fórmulas para que el frontend reciba directamente sus variables asociadas
         $services->each(function ($service) {
@@ -36,6 +36,7 @@ class ServiceController extends Controller
                     'code' => $formula->code,
                     'expression' => $formula->expression,
                     'is_visible' => (bool) $formula->is_visible,
+                    'is_subtotal' => (bool) $formula->is_subtotal,
                     'variable_names' => $formula->variables->pluck('name')->values()->all(),
                     'variables' => $formula->variables->map(function ($v) {
                         return [

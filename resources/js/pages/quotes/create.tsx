@@ -1,8 +1,17 @@
 import { Head } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, Layers, Plus, Printer } from 'lucide-react';
-import { useEffect } from 'react';
+import {
+    ChevronDown,
+    ChevronUp,
+    Eye,
+    EyeOff,
+    Layers,
+    Plus,
+    Printer,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { QuoteClientCard } from '@/components/quotes/quote-client-card';
 import { QuoteDesignParameters } from '@/components/quotes/quote-design-parameters';
+import { QuoteFinancialPanel } from '@/components/quotes/quote-financial-panel';
 import {
     QuoteFloorTable,
     type FloorGroupItem,
@@ -11,6 +20,7 @@ import { QuoteHeader } from '@/components/quotes/quote-header';
 import { QuotePrintSheet } from '@/components/quotes/quote-print-sheet';
 import { QuoteServiceSheetBlock } from '@/components/quotes/quote-service-sheet-block';
 import { QuoteServicesSelector } from '@/components/quotes/quote-services-selector';
+import { QuoteShareWhatsappButton } from '@/components/quotes/quote-share-whatsapp-button';
 import { QuoteSheetFooter } from '@/components/quotes/quote-sheet-footer';
 import type { ParameterItem, ServiceItem } from '@/lib/quote-services';
 import quotesRoute from '@/routes/quotes';
@@ -77,6 +87,8 @@ export default function QuoteCreate({
         resetQuoteStore();
     }, [resetQuoteStore]);
 
+    const [showBreakdown, setShowBreakdown] = useState<boolean>(false);
+
     // Servicios activos seleccionados para la cotización
     const activeServices = availableServices.filter((s) => selectedServiceIds.includes(s.id));
 
@@ -123,13 +135,6 @@ export default function QuoteCreate({
                             }}
                         />
 
-                        {/* Parámetros de Diseño Restantes (Superficie de Terreno, Viáticos, Descuentos) */}
-                        <QuoteDesignParameters
-                            values={designParameters}
-                            availableParameters={otherParameters}
-                            onChange={updateDesignParameter}
-                        />
-
                         {/* SECCIÓN TABLAS Y SUPERFICIES (PASO 5.1 & 5.2 - PESTAÑAS + TABLA MODULARIZADAS) */}
                         <QuoteFloorTable
                             groups={floorGroups}
@@ -167,6 +172,16 @@ export default function QuoteCreate({
                                 />
                             ))}
                         </div>
+
+                        {/* DESGLOSE DE LA PROPUESTA (PASO 7.6.4) */}
+                        {showBreakdown && (
+                            <QuoteFinancialPanel
+                                activeServices={activeServices}
+                                serviceVariables={serviceVariables}
+                                designParameters={designParameters}
+                                onClose={() => setShowBreakdown(false)}
+                            />
+                        )}
 
                         {/* PIE DE COTIZACIÓN INSTITUCIONAL (PASO 8.4) */}
                         <QuoteSheetFooter />
@@ -226,20 +241,18 @@ export default function QuoteCreate({
                                                 key={group.id}
                                                 type="button"
                                                 onClick={() => setActiveGroupId(group.id)}
-                                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] transition-colors cursor-pointer text-left border ${
-                                                    isCurrentActive
-                                                        ? 'bg-primary-950 text-white border-primary-950 shadow-2xs font-bold'
-                                                        : 'bg-muted/40 hover:bg-muted text-foreground border-border/60'
-                                                }`}
+                                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] transition-colors cursor-pointer text-left border ${isCurrentActive
+                                                    ? 'bg-primary-950 text-white border-primary-950 shadow-2xs font-bold'
+                                                    : 'bg-muted/40 hover:bg-muted text-foreground border-border/60'
+                                                    }`}
                                                 title={`Seleccionar ${group.table_name} como tabla activa`}
                                             >
                                                 <div className="flex items-center gap-1.5 truncate">
                                                     <span
-                                                        className={`size-1.5 rounded-full ${
-                                                            isCurrentActive
-                                                                ? 'bg-secondary'
-                                                                : 'bg-muted-foreground/50'
-                                                        }`}
+                                                        className={`size-1.5 rounded-full ${isCurrentActive
+                                                            ? 'bg-secondary'
+                                                            : 'bg-muted-foreground/50'
+                                                            }`}
                                                     />
                                                     <span className="truncate">{group.table_name}</span>
                                                     {isCurrentActive && (
@@ -249,11 +262,10 @@ export default function QuoteCreate({
                                                     )}
                                                 </div>
                                                 <span
-                                                    className={`font-mono font-bold shrink-0 ml-2 ${
-                                                        isCurrentActive
-                                                            ? 'text-secondary'
-                                                            : 'text-muted-foreground'
-                                                    }`}
+                                                    className={`font-mono font-bold shrink-0 ml-2 ${isCurrentActive
+                                                        ? 'text-secondary'
+                                                        : 'text-muted-foreground'
+                                                        }`}
                                                 >
                                                     {groupArea} m²
                                                 </span>
@@ -298,17 +310,62 @@ export default function QuoteCreate({
                                 </div>
                             </div>
 
-                            {/* BOTÓN DE IMPRESIÓN Y EXPORTACIÓN A PDF (PASO 8.5) */}
-                            <div className="border-t border-border pt-4">
+                            {/* PARÁMETROS DE DISEÑO RESTANTES (VIÁTICOS, DESCUENTOS, ETC. - PASO 7.6.2) */}
+                            {otherParameters.length > 0 && (
+                                <div className="border-t border-border pt-4">
+                                    <QuoteDesignParameters
+                                        values={designParameters}
+                                        availableParameters={otherParameters}
+                                        onChange={updateDesignParameter}
+                                    />
+                                </div>
+                            )}
+
+                            {/* BOTÓN DE IMPRESIÓN Y ACCIÓN DE WHATSAPP (PASO 7.6.5 / 7.6.6) */}
+                            <div className="border-t border-border pt-4 space-y-2">
                                 <button
                                     type="button"
                                     onClick={() => window.print()}
-                                    className="w-full bg-[#00253d] hover:bg-[#003e65] text-white font-bold h-10 text-xs rounded-lg shadow-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                                    className="w-full bg-[#00253d] hover:bg-[#003e65] text-white font-bold h-9.5 text-xs rounded-lg shadow-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
                                     title="Imprimir cotización o guardar como PDF"
                                 >
                                     <Printer className="size-4 text-secondary" />
                                     <span>Imprimir / Guardar como PDF</span>
                                 </button>
+
+                                <QuoteShareWhatsappButton
+                                    quoteCode={quoteCode}
+                                    clientData={clientData}
+                                    activeServices={activeServices}
+                                    serviceVariables={serviceVariables}
+                                    designParameters={designParameters}
+                                />
+
+                                {/* ENLACE SUTIL PARA DESGLOSAR/OCULTAR PROPUESTA */}
+                                <div className="text-center pt-0.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowBreakdown((prev) => !prev)}
+                                        className="text-[11px] text-muted-foreground/70 hover:text-foreground/60 inline-flex items-center gap-1.5 transition-colors cursor-pointer font-medium py-0.5"
+                                        title={
+                                            showBreakdown
+                                                ? 'Ocultar desglose de la propuesta'
+                                                : 'Desglosar propuesta'
+                                        }
+                                    >
+                                        {showBreakdown ? (
+                                            <>
+                                                <EyeOff className="size-3.5" />
+                                                <span>Ocultar desglose</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Eye className="size-3.5" />
+                                                <span>Desglosar propuesta</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </aside>

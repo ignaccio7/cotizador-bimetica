@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('code', 50);
             $table->text('expression');
             $table->boolean('is_visible')->default(false);
+            $table->boolean('is_subtotal')->default(false);
             $table->timestamps();
 
             $table->unique(['service_id', 'code']);
