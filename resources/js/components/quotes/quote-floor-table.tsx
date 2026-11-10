@@ -113,6 +113,7 @@ interface QuoteFloorTableProps {
     ) => void;
     onRemoveFloor: (floorId: string) => void;
     onToggleServiceAssignment: (serviceId: number) => void;
+    errors?: Record<string, string>;
 }
 
 export function QuoteFloorTable({
@@ -126,11 +127,15 @@ export function QuoteFloorTable({
     onUpdateFloor,
     onRemoveFloor,
     onToggleServiceAssignment,
+    errors,
 }: QuoteFloorTableProps) {
     // Tabla activa seleccionada
     const group = groups.find((g) => g.id === activeGroupId) ?? groups[0];
     const groupIndex = groups.indexOf(group);
     const totalGroups = groups.length;
+    const tableError =
+        errors?.[`floor_groups.${groupIndex}.table_name`] ||
+        errors?.[`floor_groups.${group.id}.table_name`];
 
     // Suma de superficies computables de la tabla activa
     const totalGroupM2 = group.floors.reduce((sum, f) => {
@@ -163,9 +168,18 @@ export function QuoteFloorTable({
                             value={group.table_name}
                             onChange={(e) => onUpdateTableName(group.id, e.target.value)}
                             placeholder="Nombre de tabla"
-                            title="Editar nombre de la tabla activa"
-                            className="bg-transparent border-b border-secondary-foreground/40 text-secondary-foreground font-black text-xs uppercase focus:border-secondary-foreground focus:outline-hidden p-0 max-w-[140px]"
+                            title={tableError || "Editar nombre de la tabla activa"}
+                            className={`bg-transparent text-secondary-foreground font-black text-xs uppercase focus:outline-hidden p-0 max-w-[140px] border-b-2 ${
+                                tableError
+                                    ? 'border-red-600 bg-red-600/30 px-1 rounded-xs'
+                                    : 'border-secondary-foreground/40 focus:border-secondary-foreground'
+                            }`}
                         />
+                        {tableError && (
+                            <span className="text-[10px] text-red-900 bg-red-200 px-1.5 py-0.5 rounded font-bold normal-case tracking-normal shadow-xs">
+                                Nombre requerido
+                            </span>
+                        )}
                     </div>
 
                     {/* Franja Navy Central Corporativa */}

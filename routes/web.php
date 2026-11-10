@@ -11,7 +11,10 @@ Route::redirect('/', '/login')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
     Route::get('quotes/create', [QuoteController::class, 'create'])->name('quotes.create');
+    Route::post('quotes', [QuoteController::class, 'store'])->name('quotes.store');
+    Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');
     Route::resource('services', ServiceController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('services.formulas', FormulaController::class)->only(['store', 'update', 'destroy']);
     Route::resource('variables', VariableController::class)->only(['index', 'store', 'update', 'destroy']);

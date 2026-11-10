@@ -10,13 +10,14 @@ Este documento contiene las reglas obligatorias para cualquier agente (Antigravi
 - **Iconos y UI**: `lucide-react`, componentes base de Radix UI.
 
 ## 2. Prohibiciones Estrictas (Cero Alucinaciones)
-1. **NO usar Zod ni React Hook Form**: Todo formulario usa exclusivamente el componente `<Form {...action.form()}>` de Wayfinder con validación delegada a los `FormRequest` de Laravel.
+1. **Validación y Formularios**: Por defecto, los formularios usan el componente `<Form {...action.form()}>` de Wayfinder con validación delegada a `FormRequest`. En procesos de alta interacción comercial donde el usuario lo solicite expresamente (como el Cotizador), se autoriza validación previa en cliente con **Zod** y envío programático tipado con Wayfinder (`router.post(...)`), manteniendo `StoreQuoteRequest` como garantía estricta en backend. Prohibido React Hook Form.
 2. **NO inventar roles ni usuarios**: Solo existen `admin` y `vendedor`. En la Designación, el coordinador técnico es el mismo vendedor. Los clientes no tienen login ni cuenta.
 3. **NO usar `$guarded`**: Todo modelo Eloquent usa obligatoriamente `$fillable`.
 4. **NO harcodear URLs**: NUNCA escribir strings como `'/api/...'` o `post('/login')` en React. Toda ruta se importa de `@/routes/*`.
 5. **NO instalar paquetes adicionales**: Prohibido agregar WebSockets, Queues complejas ni Redis.
 6. **NO quemar constantes rígidas para datos dinámicos**: Si una tabla o entidad almacena datos dinámicamente (`parameters`, etc.), no asumir ni hardcodear constantes o listas estáticas en PHP/TS que limiten su crecimiento.
-7. **NO hacer dobles validaciones**: Si la base de datos o el `FormRequest` ya garantiza la integridad, no meter validaciones defensivas redundantes en frontend ni backend.
+7. **NO hacer dobles validaciones no solicitadas**: La validación en cliente con Zod solo aplica en los flujos expresamente instruidos por el usuario. El backend `FormRequest` siempre valida de forma independiente.
+8. **PROHIBIDO adelantarse de pasos**: NUNCA avanzar, implementar o generar código de pasos siguientes del plan sin la solicitud y confirmación explícita del usuario. El agente debe limitarse única y exclusivamente al paso actual indicado por el usuario, detenerse, explicar lo realizado y esperar la instrucción del usuario antes de tocar el siguiente paso.
 
 ## 3. Idioma y Nomenclatura
 - **Backend (PHP / BD)**: **Estrictamente en Inglés**.

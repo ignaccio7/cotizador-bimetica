@@ -6,10 +6,11 @@ Documento de contexto maestro para Gemini CLI.
 - **Backend**: Laravel 13, PostgreSQL, Laravel Fortify, FormRequests dedicados.
 - **Frontend**: React 19, Inertia.js v3, TypeScript, Tailwind CSS v4.
 - **Enrutamiento**: Laravel Wayfinder (`@/routes/*`). Prohibido escribir URLs manuales.
-- **Formularios**: Componente `<Form {...action.form()}>` de Wayfinder. Prohibido instalar o usar Zod / React Hook Form.
+- **Formularios**: Por defecto componente `<Form {...action.form()}>` de Wayfinder. En procesos complejos expresamente solicitados (ej. Cotizador), se autoriza validación previa en cliente con **Zod** y envío programático tipado con Wayfinder (`router.post(...)`), manteniendo `FormRequest` en el backend. Prohibido React Hook Form.
 - **Modelos Eloquent**: Obligatorio `$fillable`. Prohibido `$guarded`.
 - **Datos Dinámicos**: Prohibido quemar o asumir constantes rígidas (`const GROUPS`) si la base de datos es la fuente dinámica de verdad.
 - **Integridad**: Prohibido hacer dobles validaciones o código defensivo redundante si las reglas de validación o la BD ya garantizan el estado.
+- **Prohibido adelantarse de pasos**: Terminantemente PROHIBIDO avanzar, implementar o generar código de pasos subsiguientes del plan sin autorización explícita del usuario. El agente debe limitarse única y exclusivamente al paso actual indicado, detenerse, explicar lo realizado y esperar la instrucción del usuario.
 
 ## Idioma
 - Backend (clases, tablas, métodos, migraciones): **Inglés**.

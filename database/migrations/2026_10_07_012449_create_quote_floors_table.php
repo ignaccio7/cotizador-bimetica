@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('quote_floors', function (Blueprint $table) {
             $table->id();
-                $table->foreignId('quote_floor_group_id')->constrained()->cascadeOnDelete();
-                $table->string('name', 50);
-                $table->string('description')->nullable();
-                $table->decimal('area', 10, 2);
-                $table->timestamps();
+            $table->foreignId('quote_floor_group_id')->constrained()->cascadeOnDelete();
+            $table->string('name', 50);
+            $table->string('description')->nullable();
+            $table->decimal('area', 10, 2);
+            $table->timestamps();
         });
     }
 

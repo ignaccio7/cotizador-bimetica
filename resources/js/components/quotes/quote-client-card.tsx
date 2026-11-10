@@ -13,6 +13,7 @@ interface QuoteClientCardProps {
     projectCategoryParameters?: ParameterItem[];
     selectedProjectCategoryId?: string;
     onProjectCategoryChange?: (id: string, value: string, label: string) => void;
+    errors?: Record<string, string>;
 }
 
 export function QuoteClientCard({
@@ -21,17 +22,36 @@ export function QuoteClientCard({
     projectCategoryParameters = [],
     selectedProjectCategoryId = '',
     onProjectCategoryChange,
+    errors,
 }: QuoteClientCardProps) {
     const hasProjectCategory = projectCategoryParameters.length > 0;
     const groupLabel = projectCategoryParameters[0]?.group_label ?? '';
+    const fullNameError = errors?.['client.full_name'];
 
     return (
         <section aria-label="Ficha del Cliente" className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             {/* PROPIETARIO/S */}
-            <div className="rounded-lg bg-muted/50 border border-border p-2.5 focus-within:border-primary focus-within:bg-card focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    PROPIETARIO/S:
-                </label>
+            <div
+                className={`rounded-lg p-2.5 transition-all ${
+                    fullNameError
+                        ? 'bg-red-50/50 dark:bg-red-950/20 border border-red-500 ring-1 ring-red-500/30'
+                        : 'bg-muted/50 border border-border focus-within:border-primary focus-within:bg-card focus-within:ring-1 focus-within:ring-primary/20'
+                }`}
+            >
+                <div className="flex items-center justify-between gap-2">
+                    <label
+                        className={`block text-[10px] font-bold uppercase tracking-wider ${
+                            fullNameError ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'
+                        }`}
+                    >
+                        PROPIETARIO/S: *
+                    </label>
+                    {fullNameError && (
+                        <span className="text-[10px] text-red-600 dark:text-red-400 font-semibold truncate">
+                            {fullNameError}
+                        </span>
+                    )}
+                </div>
                 <input
                     type="text"
                     value={clientData.fullName}

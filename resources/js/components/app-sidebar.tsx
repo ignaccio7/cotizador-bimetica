@@ -1,4 +1,4 @@
-import { Calculator, FilePlus, LayoutGrid, Sliders, SlidersHorizontal } from 'lucide-react';
+import { Calculator, FilePlus, FileSpreadsheet, LayoutGrid, Sliders, SlidersHorizontal } from 'lucide-react';
 import { BimeticaBrandHeader } from '@/components/bimetica-brand-header';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -20,6 +20,11 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Cotizaciones',
+        href: quotes.index(),
+        icon: FileSpreadsheet,
     },
     {
         title: 'Nueva Cotización',

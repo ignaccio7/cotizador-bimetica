@@ -1,5 +1,7 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import {
+    AlertCircle,
+    CheckCircle2,
     ChevronDown,
     ChevronUp,
     Eye,
@@ -8,20 +10,25 @@ import {
     Plus,
     Printer,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { QuoteClientCard } from '@/components/quotes/quote-client-card';
 import { QuoteDesignParameters } from '@/components/quotes/quote-design-parameters';
-import { QuoteFinancialPanel } from '@/components/quotes/quote-financial-panel';
+import {
+    QuoteFinancialPanel,
+    calculateQuoteBreakdown,
+} from '@/components/quotes/quote-financial-panel';
 import {
     QuoteFloorTable,
     type FloorGroupItem,
 } from '@/components/quotes/quote-floor-table';
 import { QuoteHeader } from '@/components/quotes/quote-header';
 import { QuotePrintSheet } from '@/components/quotes/quote-print-sheet';
+import { QuoteSaveButton } from '@/components/quotes/quote-save-button';
 import { QuoteServiceSheetBlock } from '@/components/quotes/quote-service-sheet-block';
 import { QuoteServicesSelector } from '@/components/quotes/quote-services-selector';
 import { QuoteShareWhatsappButton } from '@/components/quotes/quote-share-whatsapp-button';
 import { QuoteSheetFooter } from '@/components/quotes/quote-sheet-footer';
+import { validateQuoteWithZod, type QuotePayload } from '@/lib/quote-schema';
 import type { ParameterItem, ServiceItem } from '@/lib/quote-services';
 import quotesRoute from '@/routes/quotes';
 import { useQuoteStore } from '@/stores/use-quote-store';
@@ -51,6 +58,7 @@ export default function QuoteCreate({
     quoteCode: propQuoteCode,
     nextQuoteCode,
 }: QuoteCreateProps) {
+    const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
     const quoteCode = propQuoteCode || nextQuoteCode || 'COT-2026-00001';
     const availableServices = services;
     const availableParameters = parameters;
@@ -110,12 +118,96 @@ export default function QuoteCreate({
             floors: [],
         };
 
+    // ── Estado de Validación en Cliente con Zod (Modo: Submit primero, luego reactivo en vivo) ──
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
+
+    // Función para armar el payload canónico para validar con Zod y enviar al backend
+    const buildPayload = useCallback((): QuotePayload => {
+        const { serviceBreakdown, totalAmount } = calculateQuoteBreakdown(
+            activeServices,
+            serviceVariables,
+            designParameters
+        );
+
+        return {
+            client: {
+                full_name: clientData.fullName.trim(),
+                phone: clientData.phone?.trim() || null,
+                address: clientData.address?.trim() || null,
+                ci: clientData.ci?.trim() || null,
+            },
+            total_amount: totalAmount,
+            filled_parameters: designParameters,
+            floor_groups: floorGroups.map((group) => {
+                const totalArea = group.floors.reduce(
+                    (sum, floor) => sum + (Number(floor.area) || 0),
+                    0
+                );
+                return {
+                    id: group.id,
+                    table_name: group.table_name.trim(),
+                    total_area: totalArea,
+                    floors: group.floors.map((floor) => ({
+                        name: floor.name.trim(),
+                        area: Number(floor.area) || 0,
+                        description: floor.description?.trim() || null,
+                    })),
+                };
+            }),
+            services: activeServices.map((service) => {
+                const assignedGroup = floorGroups.find((g) =>
+                    g.assigned_service_ids?.includes(service.id)
+                );
+                const subtotal =
+                    serviceBreakdown.find((b) => b.service.id === service.id)?.subtotal ?? 0;
+
+                return {
+                    service_id: service.id,
+                    quote_floor_group_id: assignedGroup ? assignedGroup.id : null,
+                    subtotal: subtotal,
+                    filled_variables: serviceVariables[service.id] || {},
+                };
+            }),
+            status: 'draft',
+        };
+    }, [clientData, activeServices, serviceVariables, designParameters, floorGroups]);
+
+    // Validación reactiva con Zod:
+    // SOLO se activa una vez que el usuario intentó guardar por primera vez (hasAttemptedSubmit = true).
+    // A partir de ese momento, valida en tiempo real mientras el usuario escribe y limpia el error.
+    useEffect(() => {
+        if (hasAttemptedSubmit) {
+            const payload = buildPayload();
+            const validation = validateQuoteWithZod(payload);
+            setErrors(validation.errors);
+        }
+    }, [hasAttemptedSubmit, buildPayload]);
+
     return (
         <>
             <Head title={`Nueva Cotización - ${quoteCode} | BIMETICA`} />
 
             {/* CONTENIDO PRINCIPAL: 2 COLUMNAS (HOJA DE COTIZACIÓN IZQUIERDA + SIDEBAR DERECHO) — OCULTO AL IMPRIMIR */}
             <main className="w-full flex-1 p-4 md:p-6 print:hidden">
+                {/* MENSAJES FLASH DE RETORNO (GUARDADO DE COTIZACIÓN EXITOSO O ERROR) */}
+                {flash?.success && (
+                    <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-xs font-semibold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 shadow-xs">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                            <span>{flash.success}</span>
+                        </div>
+                    </div>
+                )}
+                {flash?.error && (
+                    <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300 shadow-xs">
+                        <div className="flex items-center gap-2">
+                            <AlertCircle className="size-4 shrink-0 text-red-600 dark:text-red-400" />
+                            <span>{flash.error}</span>
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
                     {/* COLUMNA IZQUIERDA: HOJA DE COTIZACIÓN ARQUITECTÓNICA (8 COLUMNAS) */}
                     <div className="order-2 lg:order-1 lg:col-span-8 bg-card rounded-xl shadow-xs border border-border p-6 sm:p-8 space-y-6">
@@ -133,6 +225,7 @@ export default function QuoteCreate({
                                 updateDesignParameter('project_category', val);
                                 updateDesignParameter('project_category_label', label);
                             }}
+                            errors={errors}
                         />
 
                         {/* SECCIÓN TABLAS Y SUPERFICIES (PASO 5.1 & 5.2 - PESTAÑAS + TABLA MODULARIZADAS) */}
@@ -151,6 +244,7 @@ export default function QuoteCreate({
                             onToggleServiceAssignment={(serviceId) =>
                                 toggleServiceAssignment(activeGroup.id, serviceId)
                             }
+                            errors={errors}
                         />
 
                         {/* SEPARADOR INSTITUCIONAL (PASO 8.1) */}
@@ -206,6 +300,7 @@ export default function QuoteCreate({
                                     servicesCatalog={availableServices}
                                     selectedServiceIds={selectedServiceIds}
                                     onToggleService={toggleService}
+                                    errorMessage={errors['services']}
                                 />
                             </div>
 
@@ -323,6 +418,15 @@ export default function QuoteCreate({
 
                             {/* BOTÓN DE IMPRESIÓN Y ACCIÓN DE WHATSAPP (PASO 7.6.5 / 7.6.6) */}
                             <div className="border-t border-border pt-4 space-y-2">
+                                {/* BOTÓN OFICIAL: GUARDAR COTIZACIÓN EN BORRADOR (PASO 7B.5 - ZOD + WAYFINDER) */}
+                                <QuoteSaveButton
+                                    buildPayload={buildPayload}
+                                    errors={errors}
+                                    setErrors={setErrors}
+                                    hasAttemptedSubmit={hasAttemptedSubmit}
+                                    setHasAttemptedSubmit={setHasAttemptedSubmit}
+                                />
+
                                 <button
                                     type="button"
                                     onClick={() => window.print()}

@@ -1,4 +1,4 @@
-import { Check, Compass, HardHat, Plus, Search, XIcon } from 'lucide-react';
+import { AlertCircle, Check, Compass, HardHat, Plus, Search, XIcon } from 'lucide-react';
 import { useState } from 'react';
 import { ServiceCategoryBadge } from '@/components/services/service-category-badge';
 import { QuoteActiveServices } from './quote-active-services';
@@ -12,6 +12,7 @@ interface QuoteServicesSelectorProps {
     servicesCatalog?: ServiceItem[];
     selectedServiceIds: number[];
     onToggleService?: (serviceId: number) => void;
+    errorMessage?: string;
 }
 
 type CategoryTab = 'all' | 'design' | 'construction';
@@ -24,6 +25,7 @@ export function QuoteServicesSelector({
     servicesCatalog = [],
     selectedServiceIds,
     onToggleService,
+    errorMessage,
 }: QuoteServicesSelectorProps) {
     // 1. Estado para abrir/cerrar el panel acordeón
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
@@ -83,6 +85,14 @@ export function QuoteServicesSelector({
 
     return (
         <div className="space-y-2.5">
+            {/* Aviso de error de validación en servicios */}
+            {errorMessage && (
+                <div className="flex items-center gap-1.5 p-2 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-[11px] font-medium leading-tight">
+                    <AlertCircle className="size-3.5 shrink-0 text-red-600 dark:text-red-400" />
+                    <span>{errorMessage}</span>
+                </div>
+            )}
+
             {/* Cabecera del Selector con Badge de Activos */}
             <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                 <span>SERVICIOS DISPONIBLES:</span>
@@ -95,7 +105,11 @@ export function QuoteServicesSelector({
             <button
                 type="button"
                 onClick={() => setIsSelectorOpen(!isSelectorOpen)}
-                className="w-full flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground shadow-2xs hover:border-primary cursor-pointer transition-colors"
+                className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold shadow-2xs cursor-pointer transition-colors ${
+                    errorMessage
+                        ? 'border-2 border-red-500 bg-red-50/20 text-red-900 dark:text-red-200'
+                        : 'border border-border bg-card text-foreground hover:border-primary'
+                }`}
                 title={isSelectorOpen ? 'Cerrar selector' : 'Seleccionar servicios para cotizar'}
             >
                 <span className="flex items-center gap-1.5 truncate">

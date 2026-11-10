@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('quote_id')->constrained()->cascadeOnDelete();
             $table->foreignId('service_id')->constrained()->cascadeOnDelete();
             $table->foreignId('quote_floor_group_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->decimal('subtotal', 15, 2)->default(0);
             $table->jsonb('filled_variables')->nullable();
             $table->timestamps();
         });

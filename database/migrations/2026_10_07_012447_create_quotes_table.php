@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('quotes', function (Blueprint $table) {
             $table->id();
-                $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-                $table->foreignId('seller_id')->constrained('users')->cascadeOnDelete();
-                $table->string('status', 50)->default('Draft');
-                $table->jsonb('filled_parameters')->nullable();
-                $table->decimal('total_amount', 15, 2)->default(0);
-                $table->timestamps();
+            $table->string('code', 30)->unique();
+            $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('seller_id')->constrained('users')->cascadeOnDelete();
+            $table->string('status', 50)->default('Draft');
+            $table->jsonb('filled_parameters')->nullable();
+            $table->decimal('total_amount', 15, 2)->default(0);
+            $table->timestamps();
         });
     }
 

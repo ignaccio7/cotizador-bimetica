@@ -28,4 +28,12 @@ class Service extends Model
     {
         return $this->hasMany(Formula::class);
     }
+
+    /**
+     * Get the quotes where this service is included.
+     */
+    public function quoteServices(): HasMany
+    {
+        return $this->hasMany(QuoteService::class);
+    }
 }
