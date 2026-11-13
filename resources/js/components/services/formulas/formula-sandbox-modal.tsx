@@ -65,9 +65,11 @@ export function FormulaSandboxModal({
         }
     });
 
-    // 5. Detectar grupos de parámetros referenciados en toda la cadena de expresiones
+    // 5. Detectar grupos de parámetros referenciados en toda la cadena de expresiones (excluyendo viáticos y descuentos)
     const allExpressions = [formula.expression, ...orderedFormulas.map((f) => f.expression)].join(' ');
-    const availableGroups = Array.from(new Set(parameters.map((p) => p.group)));
+    const availableGroups = Array.from(
+        new Set(parameters.filter((p) => p.group !== 'viatico' && p.group !== 'discount').map((p) => p.group))
+    );
     const detectedGroups = availableGroups.filter((groupName) => {
         const regex = new RegExp(`\\b${groupName}\\b|\\{${groupName}\\}`, 'i');
         return regex.test(allExpressions);

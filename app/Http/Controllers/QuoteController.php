@@ -201,7 +201,15 @@ class QuoteController extends Controller
             'client',
             'seller:id,name,email',
             'floorGroups.floors',
-            'quoteServices.service:id,name,category,description',
+            'quoteServices.service' => function ($query) {
+                $query->select(['id', 'name', 'category', 'description'])
+                    ->with([
+                        'formulas' => function ($fq) {
+                            $fq->with('variables:id,name,type,value_type,default_value,options')
+                                ->orderBy('id', 'asc');
+                        },
+                    ]);
+            },
             'quoteServices.floorGroup:id,table_name',
         ]);
 

@@ -26,17 +26,20 @@ interface QuotePrintSheetProps {
     availableParameters?: ParameterItem[];
     advisorName?: string;
     advisorPhone?: string;
+    quoteDate?: string;
+    savedTotalAmount?: number;
+    beforeFooterSlot?: React.ReactNode;
 }
 
 type BlockColumn =
     | {
-          kind: 'variable';
-          variable: VariableItem;
-      }
+        kind: 'variable';
+        variable: VariableItem;
+    }
     | {
-          kind: 'formula';
-          formula: FormulaItem;
-      };
+        kind: 'formula';
+        formula: FormulaItem;
+    };
 
 // ── COMPONENTE AUXILIAR: BLOQUE DE SERVICIO IMPRESO ──
 function PrintServiceBlock({
@@ -75,7 +78,7 @@ function PrintServiceBlock({
 
     if (designParameters) {
         Object.entries(designParameters).forEach(([k, val]) => {
-            if (val !== undefined && val !== '') {
+            if (val !== undefined && val !== '' && !k.startsWith('viatico') && !k.startsWith('discount')) {
                 values[k] = Number(val) || 0;
             }
         });
@@ -204,11 +207,11 @@ function PrintServiceBlock({
                             >
                                 {evaluation.success
                                     ? evaluation.isNumeric !== false && typeof evaluation.result === 'number'
-                                          ? `Bs. ${evaluation.result.toLocaleString('en-US', {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })}`
-                                          : String(evaluation.result)
+                                        ? `Bs. ${evaluation.result.toLocaleString('en-US', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}`
+                                        : String(evaluation.result)
                                     : 'Bs. —'}
                             </div>
                         );
@@ -299,12 +302,17 @@ export function QuotePrintSheet({
     availableParameters = [],
     advisorName = 'Ing. Mariela Vasquez',
     advisorPhone = '71212168',
+    quoteDate,
+    savedTotalAmount,
+    beforeFooterSlot,
 }: QuotePrintSheetProps) {
-    const todayDate = new Date().toLocaleDateString('es-BO', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-    });
+    const displayDate =
+        quoteDate ||
+        new Date().toLocaleDateString('es-BO', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        });
 
     // ── PARÁMETROS DE DISEÑO DINÁMICOS MEDIANTE MAP (EXCLUYENDO CATEGORÍA DEL PROYECTO QUE YA ESTÁ EN LA CABECERA) ──
     const projectCategoryParam = (availableParameters || []).find((p) => p.group === 'project_category');
@@ -313,7 +321,8 @@ export function QuotePrintSheet({
 
     const groupsMap = new Map<string, { group: string; group_label: string }>();
     (availableParameters || []).forEach((param) => {
-        if (param.group !== 'project_category' && !groupsMap.has(param.group)) {
+        // Excluir categoría (ya va en cabecera) y descuentos (va en el bloque del total económico)
+        if (param.group !== 'project_category' && param.group !== 'discount' && !groupsMap.has(param.group)) {
             groupsMap.set(param.group, {
                 group: param.group,
                 group_label: param.group_label ?? param.group,
@@ -322,11 +331,20 @@ export function QuotePrintSheet({
     });
     const printParamGroups = Array.from(groupsMap.values());
 
-    const { totalAmount } = calculateQuoteBreakdown(
+    const {
+        servicesSubtotal,
+        discountAmount,
+        discountLabel,
+        discountPercent,
+        viaticoAmount,
+        viaticoLabel,
+        totalAmount: calculatedTotalAmount,
+    } = calculateQuoteBreakdown(
         activeServices,
         serviceVariables,
         designParameters
     );
+    const totalAmount = savedTotalAmount !== undefined ? savedTotalAmount : calculatedTotalAmount;
 
     // ── SECUENCIA RELACIONAL: ASOCIAR CADA TABLA A SUS SERVICIOS CORRESPONDIENTES ──
     const printedServiceIds = new Set<number>();
@@ -348,7 +366,7 @@ export function QuotePrintSheet({
     const unassignedServices = activeServices.filter((s) => !printedServiceIds.has(s.id));
 
     return (
-        <div className="quote-print-sheet w-full max-w-[215mm] mx-auto bg-white text-black font-sans text-xs leading-normal">
+        <div className="quote-print-sheet w-full print:max-w-[215mm] mx-auto bg-white text-black font-sans text-xs leading-normal">
             {/* ── 1. CABECERA INSTITUCIONAL: LOGO A LA IZQUIERDA Y EXPEDIENTE A LA DERECHA (IDÉNTICO AL COTIZADOR) ── */}
             <div className="flex items-start justify-between gap-4 border-b border-gray-300 pb-3 mb-2">
                 {/* Logo Oficial Bimetica a la Izquierda */}
@@ -366,7 +384,7 @@ export function QuotePrintSheet({
                         EXPEDIENTE Nº {quoteCode}
                     </div>
                     <div className="text-[11px] text-gray-700 font-bold">
-                        La Paz, Bolivia · Fecha: {todayDate}
+                        La Paz, Bolivia · Fecha: {displayDate}
                     </div>
                     <div className="text-[10px] text-gray-500 font-medium">
                         Vigencia: 7 días calendario
@@ -428,7 +446,7 @@ export function QuotePrintSheet({
                     <div className="text-[10.5px] font-bold uppercase tracking-wider text-gray-900 mb-1">
                         PARAMETROS DE DISEÑO
                     </div>
-                    <table className="w-full max-w-md border-collapse border border-gray-400 text-center text-[10.5px]">
+                    <table className="w-full max-w-2xl print:max-w-md border-collapse border border-gray-400 text-center text-[10.5px]">
                         <tbody>
                             {printParamGroups.map((group, idx) => {
                                 const isLast = idx === printParamGroups.length - 1;
@@ -495,23 +513,66 @@ export function QuotePrintSheet({
                 )}
             </div>
 
-            {/* ── 5.1 TOTAL NETO ACORDADO EN IMPRESIÓN ── */}
+            {/* ── 5.1 MONTO TOTAL EN IMPRESIÓN (CON DESGLOSE DE AJUSTES CUANDO APLICA) ── */}
             {totalAmount > 0 && (
                 <div className="flex justify-end mb-3 break-inside-avoid">
-                    <div className="border border-black bg-gray-50/70 px-4 py-1.5 text-right rounded">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-800 mr-3">
-                            Monto Total Neto Acordado:
-                        </span>
-                        <span className="font-mono font-bold text-black text-xs">
-                            Bs.{' '}
-                            {totalAmount.toLocaleString('en-US', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                            })}
-                        </span>
+                    <div className="border border-black bg-gray-50/70 px-4 py-2 text-right rounded min-w-[220px]">
+                        {(discountAmount > 0 || viaticoAmount > 0) && (
+                            <div className="space-y-1 mb-1.5 pb-1.5 border-b border-gray-300 text-[10px]">
+                                <div className="flex justify-between gap-4 text-gray-700">
+                                    <span>Subtotal Servicios:</span>
+                                    <span className="font-mono font-semibold">
+                                        Bs.{' '}
+                                        {servicesSubtotal.toLocaleString('en-US', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}
+                                    </span>
+                                </div>
+                                {discountAmount > 0 && (
+                                    <div className="flex justify-between gap-4 text-rose-700 font-semibold">
+                                        <span>Descuento ({discountLabel || `${discountPercent}%`}):</span>
+                                        <span className="font-mono">
+                                            - Bs.{' '}
+                                            {discountAmount.toLocaleString('en-US', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}
+                                        </span>
+                                    </div>
+                                )}
+                                {viaticoAmount > 0 && (
+                                    <div className="flex justify-between gap-4 text-gray-800 font-semibold">
+                                        <span>Viático ({viaticoLabel || 'Ciudad'}):</span>
+                                        <span className="font-mono">
+                                            + Bs.{' '}
+                                            {viaticoAmount.toLocaleString('en-US', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        <div className="flex justify-between items-center gap-4">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-800">
+                                Monto Total:
+                            </span>
+                            <span className="font-mono font-black text-black text-xs">
+                                Bs.{' '}
+                                {totalAmount.toLocaleString('en-US', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}
+                            </span>
+                        </div>
                     </div>
                 </div>
             )}
+
+            {/* Slot opcional para Desglose de la Propuesta justo encima del Footer */}
+            {beforeFooterSlot}
 
             {/* ── 6. PIE DE PÁGINA INSTITUCIONAL ── */}
             <div className="mt-4 pt-3 border-t border-gray-400 text-[10px] break-inside-avoid">
@@ -580,7 +641,7 @@ export function QuotePrintSheet({
 
                 {/* Cintillo con Emojis y Contacto */}
                 <div className="pt-2 border-t border-gray-300 flex items-center justify-between text-[10px] text-gray-700">
-                    <span>{todayDate}</span>
+                    <span>{displayDate}</span>
                     <span>
                         📌 Av. 16 de Julio (el prado), Edicio San Pablo # 1479, piso 5, Of. 506 -
                         La Paz , 📱 +591-{advisorPhone}

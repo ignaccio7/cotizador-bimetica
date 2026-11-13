@@ -55,6 +55,7 @@ class ServiceController extends Controller
         $availableVariables = Variable::orderBy('name', 'asc')->pluck('name')->values()->all();
 
         $parameters = Parameter::active()
+            ->whereNotIn('group', ['viatico', 'discount'])
             ->orderBy('group', 'asc')
             ->orderBy('name', 'asc')
             ->get(['id', 'group', 'group_label', 'name', 'type', 'value']);

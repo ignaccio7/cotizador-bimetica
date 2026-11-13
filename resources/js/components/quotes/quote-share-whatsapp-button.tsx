@@ -61,8 +61,17 @@ export function QuoteShareWhatsappButton({
             targetPhone = `591${cleanDigits}`;
         }
 
-        // 3. Obtener el cálculo unificado de servicios y total neto acordado
-        const { serviceBreakdown, totalAmount } = calculateQuoteBreakdown(
+        // 3. Obtener el cálculo unificado de servicios y desglose de ajustes
+        const {
+            serviceBreakdown,
+            servicesSubtotal,
+            discountAmount,
+            discountLabel,
+            discountPercent,
+            viaticoAmount,
+            viaticoLabel,
+            totalAmount,
+        } = calculateQuoteBreakdown(
             activeServices,
             serviceVariables,
             designParameters
@@ -86,6 +95,33 @@ export function QuoteShareWhatsappButton({
                       .join('\n')
                 : '• Sin servicios seleccionados';
 
+        // 4.1 Formatear líneas de desglose económico (descuentos y viáticos si aplican)
+        const breakdownLines: string[] = [];
+        if (discountAmount > 0 || viaticoAmount > 0) {
+            breakdownLines.push(
+                `• *Subtotal Servicios:* Bs. ${servicesSubtotal.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                })}`
+            );
+            if (discountAmount > 0) {
+                breakdownLines.push(
+                    `• *Descuento (${discountLabel || `${discountPercent}%`}):* -Bs. ${discountAmount.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    })}`
+                );
+            }
+            if (viaticoAmount > 0) {
+                breakdownLines.push(
+                    `• *Viático (${viaticoLabel || 'Ciudad'}):* +Bs. ${viaticoAmount.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    })}`
+                );
+            }
+        }
+
         const formattedTotal = totalAmount.toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -105,8 +141,11 @@ export function QuoteShareWhatsappButton({
             separator,
             '*SERVICIOS COTIZADOS:*',
             servicesList,
+            ...(breakdownLines.length > 0
+                ? [separator, '*DESGLOSE ECONÓMICO:*', ...breakdownLines]
+                : []),
             separator,
-            `*MONTO TOTAL ACORDADO: Bs. ${formattedTotal}*`,
+            `*MONTO TOTAL: Bs. ${formattedTotal}*`,
             separator,
             '*CONDICIONES COMERCIALES:*',
             '• *Modalidad:* 50% de anticipo al inicio / 50% en primera presentación',

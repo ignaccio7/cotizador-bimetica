@@ -124,7 +124,16 @@ export default function QuoteCreate({
 
     // Función para armar el payload canónico para validar con Zod y enviar al backend
     const buildPayload = useCallback((): QuotePayload => {
-        const { serviceBreakdown, totalAmount } = calculateQuoteBreakdown(
+        const {
+            serviceBreakdown,
+            servicesSubtotal,
+            discountPercent,
+            discountAmount,
+            discountLabel,
+            viaticoAmount,
+            viaticoLabel,
+            totalAmount,
+        } = calculateQuoteBreakdown(
             activeServices,
             serviceVariables,
             designParameters
@@ -138,7 +147,15 @@ export default function QuoteCreate({
                 ci: clientData.ci?.trim() || null,
             },
             total_amount: totalAmount,
-            filled_parameters: designParameters,
+            filled_parameters: {
+                ...designParameters,
+                services_subtotal: String(servicesSubtotal),
+                discount_percent: String(discountPercent),
+                discount_amount: String(discountAmount),
+                discount_label: discountLabel || designParameters['discount_label'] || '',
+                viatico_amount: String(viaticoAmount),
+                viatico_label: viaticoLabel || designParameters['viatico_label'] || '',
+            },
             floor_groups: floorGroups.map((group) => {
                 const totalArea = group.floors.reduce(
                     (sum, floor) => sum + (Number(floor.area) || 0),

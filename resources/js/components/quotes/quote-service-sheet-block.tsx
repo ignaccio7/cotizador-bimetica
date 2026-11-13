@@ -57,7 +57,8 @@ export function QuoteServiceSheetBlock({
 
     if (designParameters) {
         Object.entries(designParameters).forEach(([k, val]) => {
-            if (val !== undefined && val !== '') {
+            // Excluir claves de viatico y discount para no contaminar la evaluación de fórmulas
+            if (val !== undefined && val !== '' && !k.startsWith('viatico') && !k.startsWith('discount')) {
                 values[k] = Number(val) || 0;
             }
         });

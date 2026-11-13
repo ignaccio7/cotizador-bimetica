@@ -71,9 +71,10 @@ export function FormulaForm({
         ? undefined
         : resolveFormulaDependencies(currentEditingFormula, allServiceFormulas).circularError;
 
-    // Extraer grupos únicos de parámetros dinámicos recibidos de la base de datos
+    // Extraer grupos únicos de parámetros dinámicos aplicables a fórmulas (excluyendo viáticos y descuentos que operan sobre el total)
+    const formulaApplicableParams = parameters.filter((p) => p.group !== 'viatico' && p.group !== 'discount');
     const parameterGroups = Array.from(
-        new Map(parameters.map((p) => [p.group, { group: p.group, group_label: p.group_label }])).values()
+        new Map(formulaApplicableParams.map((p) => [p.group, { group: p.group, group_label: p.group_label }])).values()
     );
     const parameterGroupNames = parameterGroups.map((pg) => pg.group);
 
