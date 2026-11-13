@@ -20,12 +20,19 @@ class QuoteController extends Controller
      */
     public function index(Request $request): Response
     {
+        $user = $request->user();
+
         $query = Quote::with([
             'client:id,code,full_name,ci,phone',
             'seller:id,name',
             'quoteServices.service:id,name',
         ])
             ->latest('id');
+
+        // Aislamiento por rol: si no es admin, solo ve sus propias cotizaciones
+        if ($user && ! $user->isAdmin()) {
+            $query->where('seller_id', $user->id);
+        }
 
         // Búsqueda por código de cotización, nombre del cliente, CI o código del cliente
         if ($search = $request->input('search')) {
@@ -195,8 +202,16 @@ class QuoteController extends Controller
     /**
      * Display the specified quote with all related data.
      */
-    public function show(Quote $quote): Response
+    public function show(Quote $quote, Request $request): Response
     {
+        $user = $request->user();
+
+        abort_if(
+            ! $user || (! $user->isAdmin() && $quote->seller_id !== $user->id),
+            403,
+            'No tienes permiso para ver esta cotización.'
+        );
+
         $quote->load([
             'client',
             'seller:id,name,email',

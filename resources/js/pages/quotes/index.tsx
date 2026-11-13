@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import quotesRoute from '@/routes/quotes';
-import type { BreadcrumbItem } from '@/types';
+import type { Auth, BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -92,7 +92,8 @@ const STATUS_LABELS: Record<QuoteListItem['status'], { label: string; badgeClass
 };
 
 export default function QuotesIndex({ quotes, filters }: Props) {
-    const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
+    const { auth, flash } = usePage<{ auth: Auth; flash?: { success?: string; error?: string } }>().props;
+    const isAdmin = auth?.user?.role === 'admin';
 
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
 
@@ -206,7 +207,7 @@ export default function QuotesIndex({ quotes, filters }: Props) {
                                 <tr>
                                     <th className="py-3 px-4">Código</th>
                                     <th className="py-3 px-4">Cliente</th>
-                                    <th className="py-3 px-4">Asesor</th>
+                                    {isAdmin && <th className="py-3 px-4">Vendedor</th>}
                                     <th className="py-3 px-4">Servicios</th>
                                     <th className="py-3 px-4 text-right">Total Acordado</th>
                                     <th className="py-3 px-4 text-center">Estado</th>
@@ -217,7 +218,7 @@ export default function QuotesIndex({ quotes, filters }: Props) {
                             <tbody className="divide-y divide-border/40">
                                 {quotes.data.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                                        <td colSpan={isAdmin ? 8 : 7} className="py-12 text-center text-muted-foreground">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 <FileSpreadsheet className="size-8 text-muted-foreground/40 stroke-1" />
                                                 <p className="font-medium text-foreground text-sm">
@@ -276,10 +277,12 @@ export default function QuotesIndex({ quotes, filters }: Props) {
                                                     </div>
                                                 </td>
 
-                                                {/* Asesor */}
-                                                <td className="py-3.5 px-4 text-muted-foreground">
-                                                    {quote.seller?.name || 'Administrador'}
-                                                </td>
+                                                {/* Vendedor (Solo visible para Admin) */}
+                                                {isAdmin && (
+                                                    <td className="py-3.5 px-4 text-muted-foreground">
+                                                        {quote.seller?.name || 'Administrador'}
+                                                    </td>
+                                                )}
 
                                                 {/* Servicios Cotizados */}
                                                 <td className="py-3.5 px-4">
