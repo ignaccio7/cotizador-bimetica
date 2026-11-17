@@ -54,6 +54,21 @@ export function ParameterTable({
                             <h1 className="text-xl font-bold tracking-tight text-foreground">
                                 {group.label}
                             </h1>
+                            {group.scope === 'service' && (
+                                <Badge variant="outline" className="bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30 text-[10px] font-medium">
+                                    Por Servicio
+                                </Badge>
+                            )}
+                            {group.scope === 'global' && (
+                                <Badge variant="outline" className="bg-primary/10 text-primary dark:text-primary border-primary/30 text-[10px] font-medium">
+                                    Global de Diseño
+                                </Badge>
+                            )}
+                            {group.scope === 'total' && (
+                                <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] font-medium">
+                                    Ajuste al Total
+                                </Badge>
+                            )}
                             <Badge variant="secondary" className="font-mono text-xs">
                                 {parameters.length}
                             </Badge>

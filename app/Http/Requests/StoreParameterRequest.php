@@ -45,6 +45,7 @@ class StoreParameterRequest extends FormRequest
                 'regex:/^[a-z0-9_]+$/',
             ],
             'group_label' => ['nullable', 'string', 'max:100'],
+            'scope' => ['required', 'string', Rule::in(['total', 'global', 'service'])],
             'name' => [
                 'required',
                 'string',
@@ -69,6 +70,8 @@ class StoreParameterRequest extends FormRequest
             'group.required' => 'El identificador de grupo es obligatorio.',
             'group.max' => 'El grupo no debe superar los 50 caracteres.',
             'group.regex' => 'La clave del grupo solo puede contener letras minúsculas, números y guiones bajos (sin espacios ni guiones medios).',
+            'scope.required' => 'El ámbito del parámetro es obligatorio.',
+            'scope.in' => 'El ámbito debe ser: total, global o service.',
             'name.required' => 'El nombre del parámetro es obligatorio.',
             'name.max' => 'El nombre no debe superar los 100 caracteres.',
             'name.unique' => 'Ya existe un parámetro con este nombre en este grupo.',

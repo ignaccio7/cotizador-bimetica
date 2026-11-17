@@ -14,11 +14,12 @@ class ParameterSeeder extends Seeder
     {
         $parameters = [
             // ──────────────────────────────────────────────
-            // 1. Viáticos por Ciudad (Bolivia)
+            // 1. Viáticos por Ciudad (Bolivia) — Ámbito Servicio
             // ──────────────────────────────────────────────
             [
                 'group'       => 'viatico',
                 'group_label' => 'Viáticos por Ciudad',
+                'scope'       => 'service',
                 'name'        => 'La Paz (Área Metropolitana)',
                 'type'        => 'number',
                 'value'       => 0.00,
@@ -27,6 +28,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'viatico',
                 'group_label' => 'Viáticos por Ciudad',
+                'scope'       => 'service',
                 'name'        => 'El Alto (Urbana)',
                 'type'        => 'number',
                 'value'       => 0.00,
@@ -35,6 +37,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'viatico',
                 'group_label' => 'Viáticos por Ciudad',
+                'scope'       => 'service',
                 'name'        => 'Viacha / Patacamaya',
                 'type'        => 'number',
                 'value'       => 200.00,
@@ -43,6 +46,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'viatico',
                 'group_label' => 'Viáticos por Ciudad',
+                'scope'       => 'service',
                 'name'        => 'Oruro',
                 'type'        => 'number',
                 'value'       => 300.00,
@@ -51,6 +55,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'viatico',
                 'group_label' => 'Viáticos por Ciudad',
+                'scope'       => 'service',
                 'name'        => 'Cochabamba (Centro / Valles)',
                 'type'        => 'number',
                 'value'       => 450.00,
@@ -59,6 +64,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'viatico',
                 'group_label' => 'Viáticos por Ciudad',
+                'scope'       => 'service',
                 'name'        => 'Sucre / Chuquisaca',
                 'type'        => 'number',
                 'value'       => 500.00,
@@ -67,6 +73,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'viatico',
                 'group_label' => 'Viáticos por Ciudad',
+                'scope'       => 'service',
                 'name'        => 'Santa Cruz de la Sierra',
                 'type'        => 'number',
                 'value'       => 600.00,
@@ -75,6 +82,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'viatico',
                 'group_label' => 'Viáticos por Ciudad',
+                'scope'       => 'service',
                 'name'        => 'Potosí',
                 'type'        => 'number',
                 'value'       => 400.00,
@@ -83,6 +91,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'viatico',
                 'group_label' => 'Viáticos por Ciudad',
+                'scope'       => 'service',
                 'name'        => 'Tarija',
                 'type'        => 'number',
                 'value'       => 550.00,
@@ -91,6 +100,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'viatico',
                 'group_label' => 'Viáticos por Ciudad',
+                'scope'       => 'service',
                 'name'        => 'Beni / Trinidad',
                 'type'        => 'number',
                 'value'       => 700.00,
@@ -98,11 +108,12 @@ class ParameterSeeder extends Seeder
             ],
 
             // ──────────────────────────────────────────────
-            // 2. Categorías de Proyecto Arquitectónico
+            // 2. Categorías de Proyecto Arquitectónico — Ámbito Global
             // ──────────────────────────────────────────────
             [
                 'group'       => 'project_category',
                 'group_label' => 'Categoría del Proyecto',
+                'scope'       => 'global',
                 'name'        => 'Residencial',
                 'type'        => 'number',
                 'value'       => 1.00,
@@ -111,6 +122,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'project_category',
                 'group_label' => 'Categoría del Proyecto',
+                'scope'       => 'global',
                 'name'        => 'Comercial',
                 'type'        => 'number',
                 'value'       => 1.15,
@@ -119,6 +131,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'project_category',
                 'group_label' => 'Categoría del Proyecto',
+                'scope'       => 'global',
                 'name'        => 'Industrial',
                 'type'        => 'number',
                 'value'       => 1.25,
@@ -127,6 +140,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'project_category',
                 'group_label' => 'Categoría del Proyecto',
+                'scope'       => 'global',
                 'name'        => 'Salud',
                 'type'        => 'number',
                 'value'       => 1.30,
@@ -135,6 +149,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'project_category',
                 'group_label' => 'Categoría del Proyecto',
+                'scope'       => 'global',
                 'name'        => 'Educación',
                 'type'        => 'number',
                 'value'       => 1.10,
@@ -142,11 +157,12 @@ class ParameterSeeder extends Seeder
             ],
 
             // ──────────────────────────────────────────────
-            // 3. Descuentos Comerciales
+            // 3. Descuentos Comerciales — Ámbito Total
             // ──────────────────────────────────────────────
             [
                 'group'       => 'discount',
                 'group_label' => 'Descuentos Comerciales',
+                'scope'       => 'total',
                 'name'        => 'Sin Descuento (0%)',
                 'type'        => 'percentage',
                 'value'       => 0.00,
@@ -155,6 +171,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'discount',
                 'group_label' => 'Descuentos Comerciales',
+                'scope'       => 'total',
                 'name'        => 'Descuento 5%',
                 'type'        => 'percentage',
                 'value'       => 5.00,
@@ -163,6 +180,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'discount',
                 'group_label' => 'Descuentos Comerciales',
+                'scope'       => 'total',
                 'name'        => 'Descuento 10%',
                 'type'        => 'percentage',
                 'value'       => 10.00,
@@ -171,6 +189,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'discount',
                 'group_label' => 'Descuentos Comerciales',
+                'scope'       => 'total',
                 'name'        => 'Descuento 15%',
                 'type'        => 'percentage',
                 'value'       => 15.00,
@@ -179,6 +198,7 @@ class ParameterSeeder extends Seeder
             [
                 'group'       => 'discount',
                 'group_label' => 'Descuentos Comerciales',
+                'scope'       => 'total',
                 'name'        => 'Descuento 20%',
                 'type'        => 'percentage',
                 'value'       => 20.00,
@@ -194,6 +214,7 @@ class ParameterSeeder extends Seeder
                 ],
                 [
                     'group_label' => $param['group_label'],
+                    'scope'       => $param['scope'],
                     'type'        => $param['type'],
                     'value'       => $param['value'],
                     'description' => $param['description'],

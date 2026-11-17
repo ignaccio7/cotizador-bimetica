@@ -3,11 +3,12 @@ import {
     resolveFormulaDependencies,
     type FormulaDependencyItem,
 } from '@/lib/formula-validator';
-import type { FormulaItem, ServiceItem, VariableItem } from '@/lib/quote-services';
+import type { FormulaItem, ParameterItem, ServiceItem, VariableItem } from '@/lib/quote-services';
 
 interface QuoteServiceSheetBlockProps {
     service: ServiceItem;
     designParameters?: Record<string, string>;
+    availableParameters?: ParameterItem[];
     variablesValues?: Record<string, string>;
     onChangeVariable: (serviceId: number, varName: string, value: string) => void;
     onRemoveService: (serviceId: number) => void;
@@ -19,6 +20,12 @@ type BlockColumn =
         variable: VariableItem;
     }
     | {
+        kind: 'parameter';
+        group: string;
+        label: string;
+        items: ParameterItem[];
+    }
+    | {
         kind: 'formula';
         formula: FormulaItem;
     };
@@ -26,11 +33,33 @@ type BlockColumn =
 export function QuoteServiceSheetBlock({
     service,
     designParameters = {},
+    availableParameters = [],
     variablesValues = {},
     onChangeVariable,
     onRemoveService,
 }: QuoteServiceSheetBlockProps) {
-    // 1. Construir el scope con los valores de las variables para Math.js
+    // 1. Identificar parámetros de servicio (scope === 'service') referenciados en las fórmulas
+    const allExpressions = (service.formulas || []).map((f) => f.expression).join(' ');
+    const serviceParams = availableParameters.filter((p) => p.scope === 'service');
+
+    const serviceParamGroupsMap = new Map<string, { group: string; label: string; items: ParameterItem[] }>();
+    serviceParams.forEach((p) => {
+        if (!serviceParamGroupsMap.has(p.group)) {
+            serviceParamGroupsMap.set(p.group, {
+                group: p.group,
+                label: p.group_label || p.group,
+                items: [],
+            });
+        }
+        serviceParamGroupsMap.get(p.group)!.items.push(p);
+    });
+
+    const referencedServiceParamGroups = Array.from(serviceParamGroupsMap.values()).filter((pg) => {
+        const regex = new RegExp(`\\b${pg.group}\\b`, 'i');
+        return regex.test(allExpressions);
+    });
+
+    // 2. Construir el scope con los valores de las variables y parámetros para Math.js
     const values: Record<string, number | string> = {};
 
     service.formulas?.forEach((f) => {
@@ -55,10 +84,19 @@ export function QuoteServiceSheetBlock({
         });
     });
 
+    // Inyectar el valor numérico del parámetro de servicio al scope de Math.js
+    referencedServiceParamGroups.forEach((pg) => {
+        const userVal = variablesValues[pg.group];
+        const defaultVal = pg.items[0]?.value ?? 0;
+        values[pg.group] = userVal !== undefined && userVal !== ''
+            ? Number(userVal) || 0
+            : Number(defaultVal) || 0;
+    });
+
     if (designParameters) {
         Object.entries(designParameters).forEach(([k, val]) => {
-            // Excluir claves de viatico y discount para no contaminar la evaluación de fórmulas
-            if (val !== undefined && val !== '' && !k.startsWith('viatico') && !k.startsWith('discount')) {
+            // Parámetros globales de diseño (como project_category) se inyectan a Math.js
+            if (val !== undefined && val !== '' && !k.endsWith('_label') && !k.endsWith('_id')) {
                 values[k] = Number(val) || 0;
             }
         });
@@ -73,10 +111,11 @@ export function QuoteServiceSheetBlock({
         variables: f.variables,
     }));
 
-    // 3. Generar columnas ordenadas directamente desde las fórmulas y sus variables dinámicas:
-    // [variables dinámicas de la fórmula] -> [fórmula visible] -> [siguiente fórmula...]
+    // 3. Generar columnas ordenadas directamente desde las fórmulas y sus variables dinámicas y parámetros:
+    // [variables dinámicas] -> [parámetros de servicio] -> [fórmula visible] -> [siguiente fórmula...]
     const columns: BlockColumn[] = [];
     const seenVarNames = new Set<string>();
+    const seenParamGroups = new Set<string>();
 
     service.formulas?.forEach((formula) => {
         // 1. Variables dinámicas asociadas a esta fórmula
@@ -89,7 +128,21 @@ export function QuoteServiceSheetBlock({
                 }
             });
 
-        // 2. Si la fórmula está configurada como visible, agregar su columna de resultado
+        // 2. Parámetros de servicio referenciados en esta fórmula (ej. viatico)
+        referencedServiceParamGroups.forEach((pg) => {
+            const regex = new RegExp(`\\b${pg.group}\\b`, 'i');
+            if (regex.test(formula.expression) && !seenParamGroups.has(pg.group)) {
+                seenParamGroups.add(pg.group);
+                columns.push({
+                    kind: 'parameter',
+                    group: pg.group,
+                    label: pg.label,
+                    items: pg.items,
+                });
+            }
+        });
+
+        // 3. Si la fórmula está configurada como visible, agregar su columna de resultado
         if (formula.is_visible !== false) {
             columns.push({ kind: 'formula', formula });
         }
@@ -152,6 +205,18 @@ export function QuoteServiceSheetBlock({
                                         title={col.variable.name.toUpperCase()}
                                     >
                                         {col.variable.name}
+                                    </div>
+                                );
+                            }
+
+                            if (col.kind === 'parameter') {
+                                return (
+                                    <div
+                                        key={`hdr-param-${col.group}`}
+                                        className="min-w-0 bg-[#2684a8]/15 text-[#003e65] dark:text-[#2684a8] px-2 py-2.5 text-center flex items-center justify-center font-black text-[10.5px] uppercase tracking-wide"
+                                        title={col.label.toUpperCase()}
+                                    >
+                                        <span className="line-clamp-2">{col.label}</span>
                                     </div>
                                 );
                             }
@@ -244,6 +309,38 @@ export function QuoteServiceSheetBlock({
                                                 className="w-full max-w-[5.5rem] text-center font-mono font-bold text-sm bg-transparent border-b-2 border-dashed border-border hover:border-primary/50 focus:border-primary focus:outline-hidden p-0.5 text-foreground transition-colors"
                                             />
                                         )}
+                                    </div>
+                                );
+                            }
+
+                            if (col.kind === 'parameter') {
+                                const selectedVal = variablesValues[col.group] !== undefined && variablesValues[col.group] !== ''
+                                    ? String(variablesValues[col.group])
+                                    : String(col.items[0]?.value ?? '0');
+
+                                return (
+                                    <div
+                                        key={`cell-param-${col.group}`}
+                                        className="min-w-0 p-2 sm:p-3 flex flex-col items-center justify-center font-mono font-bold text-foreground text-center"
+                                    >
+                                        <select
+                                            value={selectedVal}
+                                            onChange={(e) =>
+                                                onChangeVariable(service.id, col.group, e.target.value)
+                                            }
+                                            className="w-full max-w-[8.5rem] text-center font-mono font-bold text-xs bg-transparent border-b-2 border-dashed border-[#2684a8]/50 hover:border-primary focus:border-primary focus:outline-hidden p-0.5 text-foreground transition-colors cursor-pointer"
+                                            title={`Seleccionar ${col.label}`}
+                                        >
+                                            {col.items.map((opt) => (
+                                                <option
+                                                    key={opt.id}
+                                                    value={String(opt.value)}
+                                                    className="bg-popover text-popover-foreground text-xs"
+                                                >
+                                                    {opt.name} ({Number(opt.value).toLocaleString('en-US', { minimumFractionDigits: 0 })} Bs.)
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                 );
                             }

@@ -100,12 +100,14 @@ export default function QuoteCreate({
     // Servicios activos seleccionados para la cotización
     const activeServices = availableServices.filter((s) => selectedServiceIds.includes(s.id));
 
-    // Parámetros clasificados: Tipo de Proyecto para la ficha del cliente y el resto para diseño
+    // Parámetros clasificados según su ámbito:
+    // 1. Tipo de Proyecto para la ficha del cliente (ámbito global)
     const projectCategoryParameters = availableParameters.filter(
         (p) => p.group === 'project_category'
     );
-    const otherParameters = availableParameters.filter(
-        (p) => p.group !== 'project_category'
+    // 2. Parámetros restantes para el aside (ajustes al total o factores generales, excluyendo los de servicio)
+    const asideParameters = availableParameters.filter(
+        (p) => p.scope !== 'service' && p.group !== 'project_category'
     );
 
     // Tabla activa seleccionada
@@ -277,6 +279,7 @@ export default function QuoteCreate({
                                     key={service.id}
                                     service={service}
                                     designParameters={designParameters}
+                                    availableParameters={availableParameters}
                                     variablesValues={serviceVariables[service.id] || {}}
                                     onChangeVariable={setServiceVariable}
                                     onRemoveService={toggleService}
@@ -422,12 +425,12 @@ export default function QuoteCreate({
                                 </div>
                             </div>
 
-                            {/* PARÁMETROS DE DISEÑO RESTANTES (VIÁTICOS, DESCUENTOS, ETC. - PASO 7.6.2) */}
-                            {otherParameters.length > 0 && (
+                            {/* PARÁMETROS RESTANTES EN EL MOTOR (DESCUENTOS COMERCIALES, ETC.) */}
+                            {asideParameters.length > 0 && (
                                 <div className="border-t border-border pt-4">
                                     <QuoteDesignParameters
                                         values={designParameters}
-                                        availableParameters={otherParameters}
+                                        availableParameters={asideParameters}
                                         onChange={updateDesignParameter}
                                     />
                                 </div>

@@ -14,6 +14,7 @@ return new class extends Migration {
             $table->id();
             $table->string('group', 50)->index();
             $table->string('group_label', 100)->nullable(); // Ej: "Categoría del Proyecto", "Viáticos por Ciudad"
+            $table->string('scope', 20)->default('total')->index(); // total, global, service
             $table->string('name', 100);
             $table->string('type', 20)->default('number'); // number, percentage
             $table->decimal('value', 12, 2)->default(0);

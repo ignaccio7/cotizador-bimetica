@@ -37,6 +37,12 @@ type BlockColumn =
         variable: VariableItem;
     }
     | {
+        kind: 'parameter';
+        group: string;
+        label: string;
+        items: ParameterItem[];
+    }
+    | {
         kind: 'formula';
         formula: FormulaItem;
     };
@@ -46,13 +52,36 @@ function PrintServiceBlock({
     service,
     serviceVariables,
     designParameters = {},
+    availableParameters = [],
 }: {
     service: ServiceItem;
     serviceVariables: Record<number, Record<string, string>>;
     designParameters?: DesignParameters;
+    availableParameters?: ParameterItem[];
 }) {
     const varValues = serviceVariables[service.id] || {};
     const values: Record<string, number | string> = {};
+
+    // 1. Identificar parámetros de servicio (scope === 'service') referenciados en las fórmulas
+    const allExpressions = (service.formulas || []).map((f) => f.expression).join(' ');
+    const serviceParams = availableParameters.filter((p) => p.scope === 'service');
+
+    const serviceParamGroupsMap = new Map<string, { group: string; label: string; items: ParameterItem[] }>();
+    serviceParams.forEach((p) => {
+        if (!serviceParamGroupsMap.has(p.group)) {
+            serviceParamGroupsMap.set(p.group, {
+                group: p.group,
+                label: p.group_label || p.group,
+                items: [],
+            });
+        }
+        serviceParamGroupsMap.get(p.group)!.items.push(p);
+    });
+
+    const referencedServiceParamGroups = Array.from(serviceParamGroupsMap.values()).filter((pg) => {
+        const regex = new RegExp(`\\b${pg.group}\\b`, 'i');
+        return regex.test(allExpressions);
+    });
 
     service.formulas?.forEach((f) => {
         f.variables?.forEach((v) => {
@@ -76,9 +105,18 @@ function PrintServiceBlock({
         });
     });
 
+    // Inyectar el valor numérico del parámetro de servicio al scope de Math.js
+    referencedServiceParamGroups.forEach((pg) => {
+        const userVal = varValues[pg.group];
+        const defaultVal = pg.items[0]?.value ?? 0;
+        values[pg.group] = userVal !== undefined && userVal !== ''
+            ? Number(userVal) || 0
+            : Number(defaultVal) || 0;
+    });
+
     if (designParameters) {
         Object.entries(designParameters).forEach(([k, val]) => {
-            if (val !== undefined && val !== '' && !k.startsWith('viatico') && !k.startsWith('discount')) {
+            if (val !== undefined && val !== '' && !k.endsWith('_label') && !k.endsWith('_id')) {
                 values[k] = Number(val) || 0;
             }
         });
@@ -94,8 +132,10 @@ function PrintServiceBlock({
 
     const columns: BlockColumn[] = [];
     const seenVarNames = new Set<string>();
+    const seenParamGroups = new Set<string>();
 
     service.formulas?.forEach((formula) => {
+        // 1. Variables dinámicas
         formula.variables
             ?.filter((v) => v.type === 'dynamic')
             .forEach((v) => {
@@ -105,6 +145,21 @@ function PrintServiceBlock({
                 }
             });
 
+        // 2. Parámetros de servicio
+        referencedServiceParamGroups.forEach((pg) => {
+            const regex = new RegExp(`\\b${pg.group}\\b`, 'i');
+            if (regex.test(formula.expression) && !seenParamGroups.has(pg.group)) {
+                seenParamGroups.add(pg.group);
+                columns.push({
+                    kind: 'parameter',
+                    group: pg.group,
+                    label: pg.label,
+                    items: pg.items,
+                });
+            }
+        });
+
+        // 3. Fórmula
         if (formula.is_visible !== false) {
             columns.push({ kind: 'formula', formula });
         }
@@ -136,6 +191,18 @@ function PrintServiceBlock({
                                     className="bg-gray-200 text-black px-1 py-1.5 text-center font-black text-[10px] uppercase tracking-wide flex items-center justify-center"
                                 >
                                     {col.variable.name}
+                                </div>
+                            );
+                        }
+
+                        if (col.kind === 'parameter') {
+                            return (
+                                <div
+                                    key={`prt-hdr-param-${col.group}`}
+                                    className="bg-[#2684a8]/20 text-[#003e65] px-1 py-1.5 text-center font-black text-[10px] uppercase tracking-wide flex items-center justify-center"
+                                    title={col.label.toUpperCase()}
+                                >
+                                    <span className="line-clamp-2">{col.label}</span>
                                 </div>
                             );
                         }
@@ -179,6 +246,22 @@ function PrintServiceBlock({
                                     className="p-2 flex items-center justify-center font-mono font-bold text-black text-center"
                                 >
                                     {val || (v.value_type === 'string' ? '-' : '0')}
+                                </div>
+                            );
+                        }
+
+                        if (col.kind === 'parameter') {
+                            const selectedVal = varValues[col.group] !== undefined && varValues[col.group] !== ''
+                                ? String(varValues[col.group])
+                                : String(col.items[0]?.value ?? '0');
+                            const selectedOpt = col.items.find((item) => String(item.value) === String(selectedVal)) ?? col.items[0];
+
+                            return (
+                                <div
+                                    key={`prt-cell-param-${col.group}`}
+                                    className="p-1.5 flex items-center justify-center font-mono font-bold text-black text-center text-[9.5px]"
+                                >
+                                    {selectedOpt ? selectedOpt.name : '—'}
                                 </div>
                             );
                         }
@@ -321,8 +404,8 @@ export function QuotePrintSheet({
 
     const groupsMap = new Map<string, { group: string; group_label: string }>();
     (availableParameters || []).forEach((param) => {
-        // Excluir categoría (ya va en cabecera) y descuentos (va en el bloque del total económico)
-        if (param.group !== 'project_category' && param.group !== 'discount' && !groupsMap.has(param.group)) {
+        // En la tabla de Parámetros de Diseño solo se muestran parámetros de ámbito global que no estén ya en la ficha del cliente
+        if (param.scope === 'global' && param.group !== 'project_category' && !groupsMap.has(param.group)) {
             groupsMap.set(param.group, {
                 group: param.group,
                 group_label: param.group_label ?? param.group,
@@ -490,6 +573,7 @@ export function QuotePrintSheet({
                                 service={service}
                                 serviceVariables={serviceVariables}
                                 designParameters={designParameters}
+                                availableParameters={availableParameters}
                             />
                         ))}
 
@@ -507,6 +591,7 @@ export function QuotePrintSheet({
                                 service={service}
                                 serviceVariables={serviceVariables}
                                 designParameters={designParameters}
+                                availableParameters={availableParameters}
                             />
                         ))}
                     </div>

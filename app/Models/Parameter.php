@@ -18,6 +18,7 @@ class Parameter extends Model
     protected $fillable = [
         'group',
         'group_label',
+        'scope',
         'name',
         'type',
         'value',
@@ -52,5 +53,37 @@ class Parameter extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope a query to only include parameters affecting the quotation total.
+     */
+    public function scopeTotal(Builder $query): Builder
+    {
+        return $query->where('scope', 'total');
+    }
+
+    /**
+     * Scope a query to only include global project calculation parameters.
+     */
+    public function scopeGlobal(Builder $query): Builder
+    {
+        return $query->where('scope', 'global');
+    }
+
+    /**
+     * Scope a query to only include service-specific parameters.
+     */
+    public function scopeService(Builder $query): Builder
+    {
+        return $query->where('scope', 'service');
+    }
+
+    /**
+     * Scope a query to only include parameters applicable to services and formulas.
+     */
+    public function scopeForServices(Builder $query): Builder
+    {
+        return $query->whereIn('scope', ['global', 'service']);
     }
 }

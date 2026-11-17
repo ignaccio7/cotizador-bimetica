@@ -19,6 +19,7 @@ export interface ParameterItem {
     id: number;
     group: string;
     group_label?: string | null;
+    scope: 'total' | 'global' | 'service';
     name: string;
     type: 'number' | 'percentage' | 'text';
     value: string | number;
@@ -31,6 +32,7 @@ export interface ParameterItem {
 export interface ParameterGroupOption {
     group: string;
     label: string;
+    scope?: 'total' | 'global' | 'service';
 }
 
 interface ParameterDialogProps {
@@ -55,7 +57,8 @@ export function ParameterDialog({
     const [customGroup, setCustomGroup] = useState<string>('');
     const [customGroupLabel, setCustomGroupLabel] = useState<string>('');
 
-    // Tipo y estado activo
+    // Ámbito, tipo y estado activo
+    const [scope, setScope] = useState<'total' | 'global' | 'service'>('total');
     const [paramType, setParamType] = useState<'number' | 'percentage' | 'text'>('number');
     const [isActive, setIsActive] = useState<boolean>(true);
 
@@ -64,6 +67,7 @@ export function ParameterDialog({
             setSelectedGroup(parameterToEdit.group);
             setCustomGroup(parameterToEdit.group);
             setCustomGroupLabel(parameterToEdit.group_label ?? '');
+            setScope(parameterToEdit.scope ?? 'total');
             setParamType(parameterToEdit.type ?? 'number');
             setIsActive(parameterToEdit.is_active);
         } else {
@@ -72,7 +76,8 @@ export function ParameterDialog({
             const found = existingGroups.find((g) => g.group === initialGroup);
             setCustomGroup(initialGroup);
             setCustomGroupLabel(found ? found.label : '');
-            setParamType(initialGroup === 'discount' ? 'percentage' : 'number');
+            setScope(found?.scope ?? 'total');
+            setParamType('number');
             setIsActive(true);
         }
     }, [parameterToEdit, open, defaultGroup, existingGroups]);
@@ -85,10 +90,8 @@ export function ParameterDialog({
             const found = existingGroups.find((g) => g.group === groupValue);
             setCustomGroup(groupValue);
             setCustomGroupLabel(found ? found.label : '');
-            if (groupValue === 'discount') {
-                setParamType('percentage');
-            } else {
-                setParamType('number');
+            if (found?.scope) {
+                setScope(found.scope);
             }
         } else {
             setCustomGroup('');
@@ -182,6 +185,30 @@ export function ParameterDialog({
                             <input type="hidden" name="group" value={customGroup} />
                             <input type="hidden" name="group_label" value={customGroupLabel} />
                             <InputError message={errors.group} className="mt-1" />
+
+                            {/* Ámbito del Parámetro (scope) */}
+                            <div>
+                                <Label htmlFor="param-scope" className="text-xs font-semibold">
+                                    Ámbito del Parámetro
+                                </Label>
+                                <select
+                                    id="param-scope"
+                                    name="scope"
+                                    value={scope}
+                                    onChange={(e) => setScope(e.target.value as 'total' | 'global' | 'service')}
+                                    className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-xs text-foreground shadow-xs focus:border-primary focus:ring-1 focus:ring-primary"
+                                >
+                                    <option value="total">Ajuste al Total (Afecta monto final de la cotización)</option>
+                                    <option value="global">Factor Global de Diseño (Multiplicador para fórmulas de servicios)</option>
+                                    <option value="service">Específico por Servicio (Selector en fila dentro de la tabla del servicio)</option>
+                                </select>
+                                <p className="mt-1 text-[11px] text-muted-foreground">
+                                    {scope === 'total' && '💡 Se aplica como ajuste (descuento o recargo) sobre el total de la cotización.'}
+                                    {scope === 'global' && '💡 Coeficiente disponible en Math.js para fórmulas de cualquier servicio (ej. categoría de proyecto).'}
+                                    {scope === 'service' && '💡 Renderiza una columna unificada con selector dentro de la tabla del servicio correspondiente (ej. viáticos).'}
+                                </p>
+                                <InputError message={errors.scope} className="mt-1" />
+                            </div>
 
                             {/* Nombre del Parámetro / Opción */}
                             <div>

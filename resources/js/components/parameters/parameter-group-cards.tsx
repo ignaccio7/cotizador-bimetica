@@ -56,9 +56,26 @@ export function ParameterGroupCards({
                                     <div className="p-2.5 rounded-lg bg-muted border border-border/60 group-hover:bg-primary/10 transition-colors">
                                         <Folder className="size-5 text-primary" />
                                     </div>
-                                    <Badge variant="secondary" className="font-mono text-xs font-semibold px-2">
-                                        {groupItems.length} {groupItems.length === 1 ? 'parámetro' : 'parámetros'}
-                                    </Badge>
+                                    <div className="flex items-center gap-1.5">
+                                        {g.scope === 'service' && (
+                                            <Badge variant="outline" className="bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30 text-[10px] font-medium">
+                                                Por Servicio
+                                            </Badge>
+                                        )}
+                                        {g.scope === 'global' && (
+                                            <Badge variant="outline" className="bg-primary/10 text-primary dark:text-primary border-primary/30 text-[10px] font-medium">
+                                                Global de Diseño
+                                            </Badge>
+                                        )}
+                                        {g.scope === 'total' && (
+                                            <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] font-medium">
+                                                Ajuste al Total
+                                            </Badge>
+                                        )}
+                                        <Badge variant="secondary" className="font-mono text-xs font-semibold px-2">
+                                            {groupItems.length}
+                                        </Badge>
+                                    </div>
                                 </div>
 
                                 <div>

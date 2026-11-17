@@ -27,10 +27,10 @@ export default function ParametersIndex({ parameters = [] }: Props) {
     const [parameterToEdit, setParameterToEdit] = useState<ParameterItem | null>(null);
     const [parameterToDelete, setParameterToDelete] = useState<ParameterItem | null>(null);
 
-    // Grupos dinámicos calculados directamente
+    // Grupos dinámicos calculados directamente con su ámbito
     const groups = Array.from(
-        new Map(parameters.map((p) => [p.group, p.group_label || p.group])).entries()
-    ).map(([group, label]) => ({ group, label }));
+        new Map(parameters.map((p) => [p.group, { label: p.group_label || p.group, scope: p.scope }])).entries()
+    ).map(([group, data]) => ({ group, label: data.label, scope: data.scope }));
 
     const activeGroup = groups.find((g) => g.group === selectedGroup);
     const groupParameters = selectedGroup ? parameters.filter((p) => p.group === selectedGroup) : [];

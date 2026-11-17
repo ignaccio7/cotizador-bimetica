@@ -55,10 +55,10 @@ class ServiceController extends Controller
         $availableVariables = Variable::orderBy('name', 'asc')->pluck('name')->values()->all();
 
         $parameters = Parameter::active()
-            ->whereNotIn('group', ['viatico', 'discount'])
+            ->forServices()
             ->orderBy('group', 'asc')
             ->orderBy('name', 'asc')
-            ->get(['id', 'group', 'group_label', 'name', 'type', 'value']);
+            ->get(['id', 'group', 'group_label', 'scope', 'name', 'type', 'value']);
 
         return Inertia::render('services/index', [
             'services' => $services,

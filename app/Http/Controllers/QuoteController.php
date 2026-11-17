@@ -99,7 +99,7 @@ class QuoteController extends Controller
         $parameters = Parameter::active()
             ->orderBy('group', 'asc')
             ->orderBy('name', 'asc')
-            ->get(['id', 'group', 'group_label', 'name', 'type', 'value']);
+            ->get(['id', 'group', 'group_label', 'scope', 'name', 'type', 'value']);
 
         // Generar correlativo estimado anual NNN/AAAA (ej. COT-2026-00001)
         $nextQuoteCode = Quote::generateNextCode();
@@ -231,7 +231,7 @@ class QuoteController extends Controller
         $parameters = Parameter::active()
             ->orderBy('group', 'asc')
             ->orderBy('name', 'asc')
-            ->get(['id', 'group', 'group_label', 'name', 'type', 'value']);
+            ->get(['id', 'group', 'group_label', 'scope', 'name', 'type', 'value']);
 
         return Inertia::render('quotes/show', [
             'quote' => $quote,

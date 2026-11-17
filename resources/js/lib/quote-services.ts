@@ -35,6 +35,7 @@ export interface ParameterItem {
     id: number;
     group: string;
     group_label?: string | null;
+    scope?: 'total' | 'global' | 'service';
     name: string;
     type: string;
     value: string | number;
