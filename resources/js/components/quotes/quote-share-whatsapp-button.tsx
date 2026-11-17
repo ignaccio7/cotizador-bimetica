@@ -14,7 +14,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import type { ServiceItem } from '@/lib/quote-services';
+import type { ParameterItem, ServiceItem } from '@/lib/quote-services';
 
 export interface QuoteShareWhatsappButtonProps {
     quoteCode: string;
@@ -22,6 +22,7 @@ export interface QuoteShareWhatsappButtonProps {
     activeServices: ServiceItem[];
     serviceVariables: Record<number, Record<string, string>>;
     designParameters?: Record<string, string>;
+    availableParameters?: ParameterItem[];
     advisorName?: string;
     advisorPhone?: string;
     className?: string;
@@ -38,6 +39,7 @@ export function QuoteShareWhatsappButton({
     activeServices,
     serviceVariables,
     designParameters = {},
+    availableParameters = [],
     advisorName = 'Ing. Mariela Vasquez',
     advisorPhone = '71212168',
     className = '',
@@ -74,7 +76,8 @@ export function QuoteShareWhatsappButton({
         } = calculateQuoteBreakdown(
             activeServices,
             serviceVariables,
-            designParameters
+            designParameters,
+            availableParameters
         );
 
         const clientName = clientData.fullName?.trim() || 'Estimado/a Cliente';

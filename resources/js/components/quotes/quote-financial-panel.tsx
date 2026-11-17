@@ -1,5 +1,5 @@
 import { EyeOff } from 'lucide-react';
-import type { ServiceItem } from '@/lib/quote-services';
+import type { ParameterItem, ServiceItem } from '@/lib/quote-services';
 import { evaluateFormulaChain } from '@/lib/formula-engine';
 import {
     resolveFormulaDependencies,
@@ -25,25 +25,33 @@ export interface QuoteBreakdownResult {
 /**
  * Calcula de forma determinista y topológica el desglose de subtotales
  * de cada servicio activo y el monto total ajustado con descuento y viáticos.
- * 
- * Regla de negocio (Paso 7C.1):
- * - La Categoría del Proyecto (project_category) y parámetros adicionales siguen entrando al scope de fórmulas.
- * - Descuentos (discount) y Viáticos (viatico) se excluyen de las fórmulas y se calculan sobre el Total:
- *   Total = max(0, Subtotal Servicios - Descuento) + Viáticos
  */
 export function calculateQuoteBreakdown(
     activeServices: ServiceItem[],
     serviceVariables: Record<number, Record<string, string>>,
-    designParameters: Record<string, string> = {}
+    designParameters: Record<string, string> = {},
+    availableParameters: ParameterItem[] = []
 ): QuoteBreakdownResult {
-    // 1. Filtrar los parámetros para las fórmulas de servicio:
-    // Categoría del proyecto (project_category) y cualquier parámetro futuro siguen entrando a Math.js.
-    // Únicamente excluimos 'discount' y 'viatico' para que no contaminen las fórmulas individuales.
+    // 1. Extraer los parámetros de ámbito 'global' (como project_category) para las fórmulas de servicio:
+    // Solo leemos de designParameters los grupos que están definidos en la BD con scope === 'global'.
     const formulaParameters: Record<string, string | number> = {};
-    Object.entries(designParameters).forEach(([key, val]) => {
-        if (!key.startsWith('viatico') && !key.startsWith('discount')) {
-            formulaParameters[key] = val;
+    const globalParams = availableParameters.filter((p) => p.scope === 'global');
+
+    globalParams.forEach((param) => {
+        const val = designParameters[param.group];
+        if (val !== undefined && val !== '') {
+            formulaParameters[param.group] = val;
         }
+    });
+
+    // Mapear parámetros de servicio disponibles para inyección de valores por defecto
+    const serviceParams = availableParameters.filter((p) => p.scope === 'service');
+    const serviceParamGroupsMap = new Map<string, { group: string; items: ParameterItem[] }>();
+    serviceParams.forEach((p) => {
+        if (!serviceParamGroupsMap.has(p.group)) {
+            serviceParamGroupsMap.set(p.group, { group: p.group, items: [] });
+        }
+        serviceParamGroupsMap.get(p.group)!.items.push(p);
     });
 
     const serviceBreakdown = activeServices.map((service) => {
@@ -62,13 +70,26 @@ export function calculateQuoteBreakdown(
             return { service, subtotal: 0 };
         }
 
-        // Construir el scope con: parámetros de fórmula (incluyendo project_category) + variables ingresadas por el usuario
+        // Construir el scope con: parámetros globales de fórmula + variables ingresadas por el usuario
         const scope: Record<string, string | number> = {
             ...formulaParameters,
             ...(serviceVariables[service.id] || {}),
         };
 
-        // Si alguna variable aún no fue editada por el usuario, inyectar su valor por defecto (default_value)
+        // Si el servicio tiene fórmulas que referencian parámetros de servicio (scope === 'service')
+        // y el usuario aún no interactuó con el selector, inyectar el valor por defecto del primer ítem (defaultVal).
+        const allExpressions = formulas.map((f) => f.expression).join(' ');
+        serviceParamGroupsMap.forEach((pg) => {
+            const regex = new RegExp(`\\b${pg.group}\\b`, 'i');
+            if (regex.test(allExpressions)) {
+                if (scope[pg.group] === undefined || scope[pg.group] === '') {
+                    const defaultVal = pg.items[0]?.value ?? 0;
+                    scope[pg.group] = defaultVal;
+                }
+            }
+        });
+
+        // Si alguna variable de fórmula aún no fue editada por el usuario, inyectar su valor por defecto (default_value)
         formulas.forEach((f) => {
             f.variables?.forEach((v) => {
                 if (scope[v.name] === undefined && v.default_value !== null) {
@@ -156,6 +177,7 @@ export interface QuoteFinancialPanelProps {
     activeServices: ServiceItem[];
     serviceVariables: Record<number, Record<string, string>>;
     designParameters?: Record<string, string>;
+    availableParameters?: ParameterItem[];
     onClose?: () => void;
 }
 
@@ -163,6 +185,7 @@ export function QuoteFinancialPanel({
     activeServices,
     serviceVariables,
     designParameters = {},
+    availableParameters = [],
     onClose,
 }: QuoteFinancialPanelProps) {
     const {
@@ -177,7 +200,8 @@ export function QuoteFinancialPanel({
     } = calculateQuoteBreakdown(
         activeServices,
         serviceVariables,
-        designParameters
+        designParameters,
+        availableParameters
     );
 
     const hasAdjustments = discountAmount > 0 || viaticoAmount > 0;

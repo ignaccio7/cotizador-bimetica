@@ -138,7 +138,8 @@ export default function QuoteCreate({
         } = calculateQuoteBreakdown(
             activeServices,
             serviceVariables,
-            designParameters
+            designParameters,
+            availableParameters
         );
 
         return {
@@ -190,7 +191,7 @@ export default function QuoteCreate({
             }),
             status: 'draft',
         };
-    }, [clientData, activeServices, serviceVariables, designParameters, floorGroups]);
+    }, [clientData, activeServices, serviceVariables, designParameters, floorGroups, availableParameters]);
 
     // Validación reactiva con Zod:
     // SOLO se activa una vez que el usuario intentó guardar por primera vez (hasAttemptedSubmit = true).
@@ -293,6 +294,7 @@ export default function QuoteCreate({
                                 activeServices={activeServices}
                                 serviceVariables={serviceVariables}
                                 designParameters={designParameters}
+                                availableParameters={availableParameters}
                                 onClose={() => setShowBreakdown(false)}
                             />
                         )}
@@ -463,6 +465,7 @@ export default function QuoteCreate({
                                     activeServices={activeServices}
                                     serviceVariables={serviceVariables}
                                     designParameters={designParameters}
+                                    availableParameters={availableParameters}
                                 />
 
                                 {/* ENLACE SUTIL PARA DESGLOSAR/OCULTAR PROPUESTA */}

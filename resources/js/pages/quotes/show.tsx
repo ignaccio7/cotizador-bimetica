@@ -246,6 +246,7 @@ export default function QuoteShow({ quote, parameters = [] }: Props) {
                             activeServices={activeServices}
                             serviceVariables={serviceVariables}
                             designParameters={designParameters}
+                            availableParameters={parameters}
                             advisorName={advisorName}
                             className="sm:w-auto px-3.5 h-9"
                         />
@@ -282,6 +283,7 @@ export default function QuoteShow({ quote, parameters = [] }: Props) {
                                         activeServices={activeServices}
                                         serviceVariables={serviceVariables}
                                         designParameters={designParameters}
+                                        availableParameters={parameters}
                                         onClose={() => setShowBreakdown(false)}
                                     />
                                 </div>

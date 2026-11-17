@@ -425,7 +425,8 @@ export function QuotePrintSheet({
     } = calculateQuoteBreakdown(
         activeServices,
         serviceVariables,
-        designParameters
+        designParameters,
+        availableParameters
     );
     const totalAmount = savedTotalAmount !== undefined ? savedTotalAmount : calculatedTotalAmount;
 
