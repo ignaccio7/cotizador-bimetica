@@ -36,6 +36,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ServiceSeeder::class,
             VariableSeeder::class,
+            FormulaSeeder::class,
             ParameterSeeder::class,
             SettingSeeder::class,
         ]);
