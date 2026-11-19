@@ -1,6 +1,6 @@
 import { EyeOff } from 'lucide-react';
 import type { ParameterItem, ServiceItem } from '@/lib/quote-services';
-import { evaluateFormulaChain } from '@/lib/formula-engine';
+import { evaluateFormula, evaluateFormulaChain } from '@/lib/formula-engine';
 import {
     resolveFormulaDependencies,
     type FormulaDependencyItem,
@@ -11,26 +11,30 @@ export interface ServiceBreakdownItem {
     subtotal: number;
 }
 
+export interface AppliedTotalParameter {
+    group: string;
+    label: string;
+    name: string;
+    value: string | number;
+}
+
 export interface QuoteBreakdownResult {
     serviceBreakdown: ServiceBreakdownItem[];
     servicesSubtotal: number;
-    discountPercent: number;
-    discountAmount: number;
-    discountLabel?: string;
-    viaticoAmount: number;
-    viaticoLabel?: string;
+    appliedTotalParameters: AppliedTotalParameter[];
     totalAmount: number;
 }
 
 /**
  * Calcula de forma determinista y topológica el desglose de subtotales
- * de cada servicio activo y el monto total ajustado con descuento y viáticos.
+ * de cada servicio activo y el monto total evaluado dinámicamente con Math.js.
  */
 export function calculateQuoteBreakdown(
     activeServices: ServiceItem[],
     serviceVariables: Record<number, Record<string, string>>,
     designParameters: Record<string, string> = {},
-    availableParameters: ParameterItem[] = []
+    availableParameters: ParameterItem[] = [],
+    totalFormula: string = 'services_subtotal'
 ): QuoteBreakdownResult {
     // 1. Extraer los parámetros de ámbito 'global' (como project_category) para las fórmulas de servicio:
     // Solo leemos de designParameters los grupos que están definidos en la BD con scope === 'global'.
@@ -141,34 +145,50 @@ export function calculateQuoteBreakdown(
         0
     );
 
-    // 2. Descuento comercial (porcentaje sobre el subtotal de servicios)
-    const rawDiscount = parseFloat(String(designParameters['discount'] || '0')) || 0;
-    const discountPercent = rawDiscount > 0 ? rawDiscount : 0;
-    const discountAmount =
-        discountPercent > 0
-            ? Math.round(servicesSubtotal * (discountPercent / 100) * 100) / 100
-            : 0;
-    const discountLabel = designParameters['discount_label'] || '';
+    // 2. Construcción dinámica del scope para la fórmula del Total:
+    // Contiene 'services_subtotal' y dinámicamente cualquier parámetro de la BD con scope === 'total' o scope === 'global'.
+    const totalScope: Record<string, number | string | boolean> = {
+        services_subtotal: servicesSubtotal,
+    };
 
-    // 3. Viáticos por ciudad (monto fijo en Bs.)
-    const rawViatico = parseFloat(String(designParameters['viatico'] || '0')) || 0;
-    const viaticoAmount = rawViatico > 0 ? Math.round(rawViatico * 100) / 100 : 0;
-    const viaticoLabel = designParameters['viatico_label'] || '';
-
-    // 4. Monto Total Final: max(0, Subtotal - Descuento) + Viáticos
-    const totalAmount = Math.max(
-        0,
-        Math.round((servicesSubtotal - discountAmount + viaticoAmount) * 100) / 100
+    const eligibleTotalParams = availableParameters.filter(
+        (p) => p.scope === 'total' || p.scope === 'global'
     );
+    const appliedTotalParameters: AppliedTotalParameter[] = [];
+    const seenTotalGroups = new Set<string>();
+
+    eligibleTotalParams.forEach((param) => {
+        const val = designParameters[param.group];
+        if (val !== undefined && val !== '') {
+            totalScope[param.group] = parseFloat(String(val)) || 0;
+
+            const isReferencedInFormula = new RegExp(`\\b${param.group}\\b`, 'i').test(totalFormula);
+            if ((param.scope === 'total' || isReferencedInFormula) && !seenTotalGroups.has(param.group)) {
+                seenTotalGroups.add(param.group);
+                appliedTotalParameters.push({
+                    group: param.group,
+                    label: param.group_label || param.group,
+                    name: designParameters[`${param.group}_label`] || String(val),
+                    value: val,
+                });
+            }
+        }
+    });
+
+    // 3. Evaluación de la fórmula del Total exclusivamente con Math.js
+    const evalResult = evaluateFormula(totalFormula, totalScope);
+
+    const calculatedTotal =
+        evalResult.success && evalResult.isNumeric
+            ? Number(evalResult.value)
+            : servicesSubtotal;
+
+    const totalAmount = Math.max(0, Math.round(calculatedTotal * 100) / 100);
 
     return {
         serviceBreakdown,
         servicesSubtotal,
-        discountPercent,
-        discountAmount,
-        discountLabel,
-        viaticoAmount,
-        viaticoLabel,
+        appliedTotalParameters,
         totalAmount,
     };
 }
@@ -178,6 +198,7 @@ export interface QuoteFinancialPanelProps {
     serviceVariables: Record<number, Record<string, string>>;
     designParameters?: Record<string, string>;
     availableParameters?: ParameterItem[];
+    totalFormula?: string;
     onClose?: () => void;
 }
 
@@ -186,25 +207,23 @@ export function QuoteFinancialPanel({
     serviceVariables,
     designParameters = {},
     availableParameters = [],
+    totalFormula = 'services_subtotal',
     onClose,
 }: QuoteFinancialPanelProps) {
     const {
         serviceBreakdown,
         servicesSubtotal,
-        discountPercent,
-        discountAmount,
-        discountLabel,
-        viaticoAmount,
-        viaticoLabel,
+        appliedTotalParameters,
         totalAmount,
     } = calculateQuoteBreakdown(
         activeServices,
         serviceVariables,
         designParameters,
-        availableParameters
+        availableParameters,
+        totalFormula
     );
 
-    const hasAdjustments = discountAmount > 0 || viaticoAmount > 0;
+    const hasAdjustments = servicesSubtotal !== totalAmount || appliedTotalParameters.length > 0;
 
     return (
         <div className="rounded-lg border border-border bg-card shadow-2xs overflow-hidden print-break-inside-avoid">
@@ -256,7 +275,7 @@ export function QuoteFinancialPanel({
                         ))
                     )}
 
-                    {/* Subtotal Servicios (visible cuando existen ajustes de descuento o viático) */}
+                    {/* Subtotal Servicios (visible cuando existen ajustes al total) */}
                     {hasAdjustments && activeServices.length > 0 && (
                         <div className="py-2 flex items-center justify-between gap-4 font-semibold text-muted-foreground">
                             <span>Subtotal Servicios:</span>
@@ -270,37 +289,20 @@ export function QuoteFinancialPanel({
                         </div>
                     )}
 
-                    {/* Fila de Descuento (si aplica) */}
-                    {discountAmount > 0 && (
-                        <div className="py-2 flex items-center justify-between gap-4 font-semibold text-rose-600 dark:text-rose-400">
+                    {/* Parámetros de Ámbito Total aplicados dinámicamente */}
+                    {appliedTotalParameters.map((param) => (
+                        <div
+                            key={param.group}
+                            className="py-2 flex items-center justify-between gap-4 font-semibold text-secondary-600 dark:text-secondary-400"
+                        >
                             <span className="truncate">
-                                Descuento ({discountLabel || `${discountPercent}%`}):
+                                {param.label}:
                             </span>
                             <span className="font-mono shrink-0">
-                                - Bs.{' '}
-                                {discountAmount.toLocaleString('en-US', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                })}
+                                {param.name}
                             </span>
                         </div>
-                    )}
-
-                    {/* Fila de Viático por Ciudad (si aplica) */}
-                    {viaticoAmount > 0 && (
-                        <div className="py-2 flex items-center justify-between gap-4 font-semibold text-foreground">
-                            <span className="truncate">
-                                Viáticos ({viaticoLabel || 'Ciudad'}):
-                            </span>
-                            <span className="font-mono shrink-0">
-                                + Bs.{' '}
-                                {viaticoAmount.toLocaleString('en-US', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                })}
-                            </span>
-                        </div>
-                    )}
+                    ))}
 
                     {/* Monto Total */}
                     <div className="pt-2.5 flex items-center justify-between gap-4 font-bold">

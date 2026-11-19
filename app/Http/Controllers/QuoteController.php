@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\Parameter;
 use App\Models\Quote;
 use App\Models\Service;
+use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -104,10 +105,16 @@ class QuoteController extends Controller
         // Generar correlativo estimado anual NNN/AAAA (ej. COT-2026-00001)
         $nextQuoteCode = Quote::generateNextCode();
 
+        $totalFormula = Setting::get(
+            'quote_total_formula',
+            'services_subtotal'
+        );
+
         return Inertia::render('quotes/create', [
             'services' => $services,
             'parameters' => $parameters,
             'nextQuoteCode' => $nextQuoteCode,
+            'totalFormula' => $totalFormula,
         ]);
     }
 
@@ -140,6 +147,7 @@ class QuoteController extends Controller
                 'status' => $request->input('status', 'draft'),
                 'total_amount' => $request->input('total_amount'),
                 'filled_parameters' => $request->input('filled_parameters', []),
+                'filled_settings' => $request->input('filled_settings', []),
             ]);
 
             // 3. Persistir grupos de pisos (tablas) y niveles/plantas
@@ -233,9 +241,13 @@ class QuoteController extends Controller
             ->orderBy('name', 'asc')
             ->get(['id', 'group', 'group_label', 'scope', 'name', 'type', 'value']);
 
+        $totalFormula = ($quote->filled_settings ?? [])['total_formula']
+            ?? Setting::get('quote_total_formula', 'services_subtotal');
+
         return Inertia::render('quotes/show', [
             'quote' => $quote,
             'parameters' => $parameters,
+            'totalFormula' => $totalFormula,
         ]);
     }
 }

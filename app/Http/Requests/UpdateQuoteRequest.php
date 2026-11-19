@@ -26,5 +26,25 @@ class UpdateQuoteRequest extends StoreQuoteRequest
 
         return $rules;
     }
+
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return parent::attributes();
+    }
+
+    /**
+     * Get the error messages for the defined validation rules.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return parent::messages();
+    }
 }
 

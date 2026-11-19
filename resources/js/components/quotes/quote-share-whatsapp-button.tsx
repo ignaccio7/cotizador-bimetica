@@ -26,6 +26,7 @@ export interface QuoteShareWhatsappButtonProps {
     advisorName?: string;
     advisorPhone?: string;
     className?: string;
+    totalFormula?: string;
 }
 
 /**
@@ -43,6 +44,7 @@ export function QuoteShareWhatsappButton({
     advisorName = 'Ing. Mariela Vasquez',
     advisorPhone = '71212168',
     className = '',
+    totalFormula = 'services_subtotal',
 }: QuoteShareWhatsappButtonProps) {
     const [showMissingPhoneDialog, setShowMissingPhoneDialog] = useState(false);
 
@@ -67,17 +69,14 @@ export function QuoteShareWhatsappButton({
         const {
             serviceBreakdown,
             servicesSubtotal,
-            discountAmount,
-            discountLabel,
-            discountPercent,
-            viaticoAmount,
-            viaticoLabel,
+            appliedTotalParameters,
             totalAmount,
         } = calculateQuoteBreakdown(
             activeServices,
             serviceVariables,
             designParameters,
-            availableParameters
+            availableParameters,
+            totalFormula
         );
 
         const clientName = clientData.fullName?.trim() || 'Estimado/a Cliente';
@@ -98,31 +97,20 @@ export function QuoteShareWhatsappButton({
                       .join('\n')
                 : '• Sin servicios seleccionados';
 
-        // 4.1 Formatear líneas de desglose económico (descuentos y viáticos si aplican)
+        // 4.1 Formatear líneas de desglose económico cuando existan ajustes sobre el total
         const breakdownLines: string[] = [];
-        if (discountAmount > 0 || viaticoAmount > 0) {
+        if (servicesSubtotal !== totalAmount || appliedTotalParameters.length > 0) {
             breakdownLines.push(
                 `• *Subtotal Servicios:* Bs. ${servicesSubtotal.toLocaleString('en-US', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                 })}`
             );
-            if (discountAmount > 0) {
+            appliedTotalParameters.forEach((param) => {
                 breakdownLines.push(
-                    `• *Descuento (${discountLabel || `${discountPercent}%`}):* -Bs. ${discountAmount.toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                    })}`
+                    `• *${param.label}:* ${param.name}`
                 );
-            }
-            if (viaticoAmount > 0) {
-                breakdownLines.push(
-                    `• *Viático (${viaticoLabel || 'Ciudad'}):* +Bs. ${viaticoAmount.toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                    })}`
-                );
-            }
+            });
         }
 
         const formattedTotal = totalAmount.toLocaleString('en-US', {

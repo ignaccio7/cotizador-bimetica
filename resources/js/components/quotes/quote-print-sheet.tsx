@@ -29,6 +29,7 @@ interface QuotePrintSheetProps {
     quoteDate?: string;
     savedTotalAmount?: number;
     beforeFooterSlot?: React.ReactNode;
+    totalFormula?: string;
 }
 
 type BlockColumn =
@@ -388,6 +389,7 @@ export function QuotePrintSheet({
     quoteDate,
     savedTotalAmount,
     beforeFooterSlot,
+    totalFormula = 'services_subtotal',
 }: QuotePrintSheetProps) {
     const displayDate =
         quoteDate ||
@@ -416,17 +418,14 @@ export function QuotePrintSheet({
 
     const {
         servicesSubtotal,
-        discountAmount,
-        discountLabel,
-        discountPercent,
-        viaticoAmount,
-        viaticoLabel,
+        appliedTotalParameters,
         totalAmount: calculatedTotalAmount,
     } = calculateQuoteBreakdown(
         activeServices,
         serviceVariables,
         designParameters,
-        availableParameters
+        availableParameters,
+        totalFormula
     );
     const totalAmount = savedTotalAmount !== undefined ? savedTotalAmount : calculatedTotalAmount;
 
@@ -603,7 +602,7 @@ export function QuotePrintSheet({
             {totalAmount > 0 && (
                 <div className="flex justify-end mb-3 break-inside-avoid">
                     <div className="border border-black bg-gray-50/70 px-4 py-2 text-right rounded min-w-[220px]">
-                        {(discountAmount > 0 || viaticoAmount > 0) && (
+                        {(servicesSubtotal !== totalAmount || appliedTotalParameters.length > 0) && (
                             <div className="space-y-1 mb-1.5 pb-1.5 border-b border-gray-300 text-[10px]">
                                 <div className="flex justify-between gap-4 text-gray-700">
                                     <span>Subtotal Servicios:</span>
@@ -615,30 +614,12 @@ export function QuotePrintSheet({
                                         })}
                                     </span>
                                 </div>
-                                {discountAmount > 0 && (
-                                    <div className="flex justify-between gap-4 text-rose-700 font-semibold">
-                                        <span>Descuento ({discountLabel || `${discountPercent}%`}):</span>
-                                        <span className="font-mono">
-                                            - Bs.{' '}
-                                            {discountAmount.toLocaleString('en-US', {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })}
-                                        </span>
+                                {appliedTotalParameters.map((param) => (
+                                    <div key={param.group} className="flex justify-between gap-4 text-gray-800 font-semibold">
+                                        <span>{param.label}:</span>
+                                        <span className="font-mono">{param.name}</span>
                                     </div>
-                                )}
-                                {viaticoAmount > 0 && (
-                                    <div className="flex justify-between gap-4 text-gray-800 font-semibold">
-                                        <span>Viático ({viaticoLabel || 'Ciudad'}):</span>
-                                        <span className="font-mono">
-                                            + Bs.{' '}
-                                            {viaticoAmount.toLocaleString('en-US', {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })}
-                                        </span>
-                                    </div>
-                                )}
+                                ))}
                             </div>
                         )}
                         <div className="flex justify-between items-center gap-4">

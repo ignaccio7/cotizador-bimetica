@@ -67,6 +67,7 @@ interface QuoteDetail {
     status: 'draft' | 'formalized' | 'signed' | 'cancelled';
     total_amount: number | string;
     filled_parameters?: Record<string, unknown>;
+    filled_settings?: Record<string, string>;
     created_at: string;
     client?: ClientPayload;
     seller?: SellerPayload;
@@ -77,6 +78,7 @@ interface QuoteDetail {
 interface Props {
     quote: QuoteDetail;
     parameters?: ParameterItem[];
+    totalFormula?: string;
 }
 
 const STATUS_CONFIG: Record<
@@ -113,11 +115,17 @@ const STATUS_CONFIG: Record<
     },
 };
 
-export default function QuoteShow({ quote, parameters = [] }: Props) {
+export default function QuoteShow({ quote, parameters = [], totalFormula }: Props) {
     const [showBreakdown, setShowBreakdown] = useState(false);
 
     const statusCfg = STATUS_CONFIG[quote.status] || STATUS_CONFIG.draft;
     const StatusIcon = statusCfg.icon;
+
+    // Snapshot histórico inmutable: fórmula congelada al momento de crear la cotización
+    const formula =
+        (quote.filled_settings?.total_formula as string) ||
+        totalFormula ||
+        'services_subtotal';
 
     // 1. Adaptar datos del cliente al formato del documento oficial
     const clientData: ClientData = {
@@ -248,6 +256,7 @@ export default function QuoteShow({ quote, parameters = [] }: Props) {
                             designParameters={designParameters}
                             availableParameters={parameters}
                             advisorName={advisorName}
+                            totalFormula={formula}
                             className="sm:w-auto px-3.5 h-9"
                         />
 
@@ -276,6 +285,7 @@ export default function QuoteShow({ quote, parameters = [] }: Props) {
                         advisorName={advisorName}
                         quoteDate={formattedQuoteDate}
                         savedTotalAmount={Number(quote.total_amount)}
+                        totalFormula={formula}
                         beforeFooterSlot={
                             showBreakdown ? (
                                 <div className="my-4 print:hidden">
@@ -284,6 +294,7 @@ export default function QuoteShow({ quote, parameters = [] }: Props) {
                                         serviceVariables={serviceVariables}
                                         designParameters={designParameters}
                                         availableParameters={parameters}
+                                        totalFormula={formula}
                                         onClose={() => setShowBreakdown(false)}
                                     />
                                 </div>

@@ -6,6 +6,7 @@ import {
     LayoutGrid,
     Sliders,
     SlidersHorizontal,
+    Settings,
     Users,
 } from 'lucide-react';
 import { BimeticaBrandHeader } from '@/components/bimetica-brand-header';
@@ -18,6 +19,7 @@ import {
     SidebarHeader,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import configurations from '@/routes/configurations';
 import parameters from '@/routes/parameters';
 import quotes from '@/routes/quotes';
 import services from '@/routes/services';
@@ -62,6 +64,11 @@ export function AppSidebar() {
             title: 'Parámetros Globales',
             href: parameters.index(),
             icon: SlidersHorizontal,
+        },
+        {
+            title: 'Configuración',
+            href: configurations.index(),
+            icon: Settings,
         },
         {
             title: 'Usuarios',

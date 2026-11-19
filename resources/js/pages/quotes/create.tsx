@@ -50,6 +50,7 @@ interface QuoteCreateProps {
     parameters?: ParameterItem[];
     quoteCode?: string;
     nextQuoteCode?: string;
+    totalFormula?: string;
 }
 
 export default function QuoteCreate({
@@ -57,6 +58,7 @@ export default function QuoteCreate({
     parameters = [],
     quoteCode: propQuoteCode,
     nextQuoteCode,
+    totalFormula = 'services_subtotal',
 }: QuoteCreateProps) {
     const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
     const quoteCode = propQuoteCode || nextQuoteCode || 'COT-2026-00001';
@@ -129,17 +131,13 @@ export default function QuoteCreate({
         const {
             serviceBreakdown,
             servicesSubtotal,
-            discountPercent,
-            discountAmount,
-            discountLabel,
-            viaticoAmount,
-            viaticoLabel,
             totalAmount,
         } = calculateQuoteBreakdown(
             activeServices,
             serviceVariables,
             designParameters,
-            availableParameters
+            availableParameters,
+            totalFormula
         );
 
         return {
@@ -153,11 +151,9 @@ export default function QuoteCreate({
             filled_parameters: {
                 ...designParameters,
                 services_subtotal: String(servicesSubtotal),
-                discount_percent: String(discountPercent),
-                discount_amount: String(discountAmount),
-                discount_label: discountLabel || designParameters['discount_label'] || '',
-                viatico_amount: String(viaticoAmount),
-                viatico_label: viaticoLabel || designParameters['viatico_label'] || '',
+            },
+            filled_settings: {
+                total_formula: totalFormula,
             },
             floor_groups: floorGroups.map((group) => {
                 const totalArea = group.floors.reduce(
@@ -191,7 +187,7 @@ export default function QuoteCreate({
             }),
             status: 'draft',
         };
-    }, [clientData, activeServices, serviceVariables, designParameters, floorGroups, availableParameters]);
+    }, [clientData, activeServices, serviceVariables, designParameters, floorGroups, availableParameters, totalFormula]);
 
     // Validación reactiva con Zod:
     // SOLO se activa una vez que el usuario intentó guardar por primera vez (hasAttemptedSubmit = true).
@@ -295,6 +291,7 @@ export default function QuoteCreate({
                                 serviceVariables={serviceVariables}
                                 designParameters={designParameters}
                                 availableParameters={availableParameters}
+                                totalFormula={totalFormula}
                                 onClose={() => setShowBreakdown(false)}
                             />
                         )}
@@ -466,6 +463,7 @@ export default function QuoteCreate({
                                     serviceVariables={serviceVariables}
                                     designParameters={designParameters}
                                     availableParameters={availableParameters}
+                                    totalFormula={totalFormula}
                                 />
 
                                 {/* ENLACE SUTIL PARA DESGLOSAR/OCULTAR PROPUESTA */}
@@ -509,6 +507,7 @@ export default function QuoteCreate({
                     floorGroups={floorGroups}
                     activeServices={activeServices}
                     serviceVariables={serviceVariables}
+                    totalFormula={totalFormula}
                 />
             </div>
         </>

@@ -71,7 +71,7 @@ export function ParameterDialog({
             setParamType(parameterToEdit.type ?? 'number');
             setIsActive(parameterToEdit.is_active);
         } else {
-            const initialGroup = defaultGroup || (existingGroups[0]?.group ?? 'viatico');
+            const initialGroup = defaultGroup || (existingGroups[0]?.group ?? '');
             setSelectedGroup(initialGroup);
             const found = existingGroups.find((g) => g.group === initialGroup);
             setCustomGroup(initialGroup);

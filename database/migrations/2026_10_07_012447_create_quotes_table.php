@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('seller_id')->constrained('users')->cascadeOnDelete();
             $table->string('status', 50)->default('Draft');
             $table->jsonb('filled_parameters')->nullable();
+            $table->jsonb('filled_settings')->nullable();
             $table->decimal('total_amount', 15, 2)->default(0);
             $table->timestamps();
         });

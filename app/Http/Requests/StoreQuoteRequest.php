@@ -36,6 +36,7 @@ class StoreQuoteRequest extends FormRequest
             'status' => ['nullable', 'string', 'in:draft,formalized,signed,cancelled'],
             'total_amount' => ['required', 'numeric', 'min:0'],
             'filled_parameters' => ['nullable', 'array'],
+            'filled_settings' => ['nullable', 'array'],
 
             // Tablas de grupos de pisos / niveles (obligatorio al menos una tabla)
             'floor_groups' => ['required', 'array', 'min:1'],
@@ -65,19 +66,28 @@ class StoreQuoteRequest extends FormRequest
     {
         return [
             'client_id' => 'cliente',
+            'client' => 'datos del cliente',
             'client.full_name' => 'nombre del cliente',
             'client.phone' => 'teléfono del cliente',
             'client.address' => 'dirección del cliente',
             'client.ci' => 'cédula de identidad',
             'total_amount' => 'monto total',
             'status' => 'estado',
+            'filled_parameters' => 'parámetros de la cotización',
+            'filled_settings' => 'configuraciones de la cotización',
             'services' => 'servicios cotizados',
             'services.*.service_id' => 'servicio',
+            'services.*.quote_floor_group_id' => 'tabla de plantas asignada',
             'services.*.subtotal' => 'subtotal del servicio',
+            'services.*.filled_variables' => 'variables del servicio',
+            'floor_groups' => 'tablas de plantas',
             'floor_groups.*.id' => 'identificador de la tabla de plantas',
             'floor_groups.*.table_name' => 'nombre de la tabla de plantas',
+            'floor_groups.*.total_area' => 'área total de la tabla',
+            'floor_groups.*.floors' => 'niveles/plantas',
             'floor_groups.*.floors.*.name' => 'nombre del nivel/piso',
             'floor_groups.*.floors.*.area' => 'área del piso',
+            'floor_groups.*.floors.*.description' => 'descripción del nivel/piso',
         ];
     }
 
@@ -93,6 +103,9 @@ class StoreQuoteRequest extends FormRequest
             'total_amount.required' => 'El monto total acordado de la cotización es obligatorio.',
             'total_amount.numeric' => 'El monto total debe ser un valor numérico.',
             'total_amount.min' => 'El monto total no puede ser negativo.',
+            'status.in' => 'El estado de la cotización debe ser: borrador, formalizado, firmado o cancelado.',
+            'filled_parameters.array' => 'Los parámetros de la cotización deben ser un conjunto de datos válido.',
+            'filled_settings.array' => 'Las configuraciones de la cotización deben ser un conjunto de datos válido.',
             'services.required' => 'Debe incluir al menos un servicio en la cotización.',
             'services.min' => 'Debe incluir al menos un servicio en la cotización.',
             'services.*.service_id.required' => 'Cada servicio seleccionado debe tener un identificador válido.',
@@ -100,6 +113,7 @@ class StoreQuoteRequest extends FormRequest
             'services.*.subtotal.required' => 'El subtotal del servicio es obligatorio.',
             'services.*.subtotal.numeric' => 'El subtotal de cada servicio debe ser un número válido.',
             'services.*.subtotal.min' => 'El subtotal del servicio no puede ser negativo.',
+            'services.*.filled_variables.array' => 'Las variables de cada servicio deben ser un conjunto de datos válido.',
             'floor_groups.required' => 'Debe incluir al menos una tabla de plantas en la cotización.',
             'floor_groups.min' => 'Debe incluir al menos una tabla de plantas en la cotización.',
             'floor_groups.*.id.required' => 'Cada tabla de plantas debe contar con un identificador válido.',

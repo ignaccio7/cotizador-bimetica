@@ -42,6 +42,7 @@ export const quoteSchema = z.object({
     client: quoteClientSchema,
     total_amount: z.number().min(0, 'El monto total acordado no puede ser negativo.'),
     filled_parameters: z.record(z.string(), z.any()).optional(),
+    filled_settings: z.record(z.string(), z.any()).optional(),
     floor_groups: z
         .array(quoteFloorGroupSchema)
         .min(1, 'Debe incluir al menos una tabla de plantas en la cotización.'),

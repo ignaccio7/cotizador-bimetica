@@ -37,6 +37,7 @@ class DatabaseSeeder extends Seeder
             ServiceSeeder::class,
             VariableSeeder::class,
             ParameterSeeder::class,
+            SettingSeeder::class,
         ]);
     }
 }

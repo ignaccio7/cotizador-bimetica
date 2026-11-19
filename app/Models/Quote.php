@@ -22,6 +22,7 @@ class Quote extends Model
         'seller_id',
         'status',
         'filled_parameters',
+        'filled_settings',
         'total_amount',
     ];
 
@@ -34,6 +35,7 @@ class Quote extends Model
     {
         return [
             'filled_parameters' => 'array',
+            'filled_settings' => 'array',
             'total_amount' => 'decimal:2',
         ];
     }
