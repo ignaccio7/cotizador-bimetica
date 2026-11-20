@@ -30,6 +30,14 @@ class VariableSeeder extends Seeder
                 'description' => 'Cantidad de pozos SPT para estudio de suelos geotécnico',
             ],
             [
+                'name' => 'costo',
+                'type' => 'dynamic',
+                'value_type' => 'decimal',
+                'default_value' => '0',
+                'options' => null,
+                'description' => 'Costo directo o inversión asignada directamente por el cotizador',
+            ],
+            [
                 'name' => 'complejidad',
                 'type' => 'dynamic',
                 'value_type' => 'string',
