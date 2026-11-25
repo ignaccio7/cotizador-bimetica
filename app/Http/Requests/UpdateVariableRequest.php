@@ -22,8 +22,13 @@ class UpdateVariableRequest extends FormRequest
     {
         $name = $this->input('name');
         if (is_string($name)) {
+            // Convertir a minúsculas primero para no perder mayúsculas, y cambiar espacios o guiones a guion bajo
+            $lowered = strtolower(trim($name));
+            $underscored = preg_replace('/[\s-]+/', '_', $lowered);
+            $cleanName = preg_replace('/[^a-z0-9_]/', '', $underscored);
+
             $this->merge([
-                'name' => strtolower(trim(preg_replace('/[^a-z0-9_]/', '', $name))),
+                'name' => $cleanName,
             ]);
         }
 
